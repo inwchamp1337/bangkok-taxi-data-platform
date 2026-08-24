@@ -32,26 +32,26 @@ Visualizes live OLAP aggregates computed from ClickHouse dimensional marts:
 
 ```mermaid
 graph LR
-    subgraph Control Plane
-        UI["FastAPI Control Panel\n(Simulation & Pipeline Engine)"]
+    subgraph CP ["Control Plane"]
+        UI["FastAPI Control Panel<br/>(Simulation & Pipeline Engine)"]
     end
 
-    subgraph Data Lake
-        MINIO[("MinIO\n(Raw S3 Storage)")]
+    subgraph DL ["Data Lake"]
+        MINIO[("MinIO<br/>(Raw S3 Storage)")]
     end
 
-    subgraph Data Warehouse (ClickHouse)
-        CH_RAW[("raw_gps_pings\n(ReplacingMergeTree)")]
-        DBT["dbt\n(Data Quality & Dimensional Marts)"]
+    subgraph DW ["Data Warehouse (ClickHouse)"]
+        CH_RAW[("raw_gps_pings<br/>(ReplacingMergeTree)")]
+        DBT["dbt<br/>(Data Quality & Dimensional Marts)"]
     end
 
-    subgraph Analytics & Visualization
-        GF["Grafana\n(3 Pre-provisioned Dashboards)"]
+    subgraph AV ["Analytics and Visualization"]
+        GF["Grafana<br/>(3 Dashboards)"]
     end
 
     UI -->|1. Generates Scenario Data| MINIO
     UI -->|2. Triggers S3 Direct Load| CH_RAW
-    MINIO -.->|s3() direct read| CH_RAW
+    MINIO -.->|"s3() direct read"| CH_RAW
     UI -->|3. Triggers Transform & Tests| DBT
     CH_RAW --> DBT
     DBT --> GF
