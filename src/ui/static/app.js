@@ -74,6 +74,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 4000);
   }
 
+  // Global clipboard copy helper
+  window.copyToClipboard = function(text, typeName) {
+    navigator.clipboard.writeText(text).then(() => {
+      showToast(`Copied ${typeName} to clipboard: ${text}`, 'success');
+    }).catch(err => {
+      showToast(`Failed to copy: ${err}`, 'error');
+    });
+  };
+
   // Get Current Request Payload
   function getPayload() {
     const selectedScenario = document.querySelector('input[name="scenario"]:checked').value;
