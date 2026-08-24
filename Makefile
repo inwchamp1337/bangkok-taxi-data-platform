@@ -10,10 +10,10 @@
 
 up:
 	docker compose up -d
-	@echo "✅ All services started"
+	@echo "   Control UI: http://localhost:5000 (Mock Simulator & Control Plane)"
+	@echo "   Grafana:    http://localhost:3000 (admin / grafana_secret)"
 	@echo "   Airflow:    http://localhost:8080 (admin / admin)"
 	@echo "   MinIO:      http://localhost:9001 (minio_admin / minio_secret_123)"
-	@echo "   Grafana:    http://localhost:3000 (admin / grafana_secret)"
 	@echo "   ClickHouse: http://localhost:8123"
 
 down:

@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bangkok Taxi Data Platform — Control Center</title>
+  <meta name="description" content="Interactive Mock Data Simulator & Pipeline Control Plane for Bangkok Taxi Data Engineering Platform">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <!-- Background Glow FX -->
+  <div class="bg-glow bg-glow-1"></div>
+  <div class="bg-glow bg-glow-2"></div>
+
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand-section">
+        <div class="brand-badge">
+          <span class="taxi-icon">🚕</span>
+        </div>
+        <div>
+          <h1 class="brand-title">Bangkok Taxi Data Platform</h1>
+          <p class="brand-subtitle">Data Engineering Simulation & Pipeline Control Center</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <div id="connection-status" class="status-badge status-loading">
+          <span class="pulse-dot"></span>
+          <span id="status-text">Connecting...</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Top Metrics Row -->
+    <section class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-header">
+          <span class="metric-label">RAW GPS PINGS</span>
+          <span class="metric-icon">📡</span>
+        </div>
+        <div id="stat-raw-pings" class="metric-value">0</div>
+        <div class="metric-sub">taxi.raw_gps_pings</div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-header">
+          <span class="metric-label">STAGED PINGS</span>
+          <span class="metric-icon">🧹</span>
+        </div>
+        <div id="stat-stg-pings" class="metric-value">0</div>
+        <div class="metric-sub">taxi.stg_gps_pings</div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-header">
+          <span class="metric-label">COMPLETED TRIPS</span>
+          <span class="metric-icon">🚖</span>
+        </div>
+        <div id="stat-fact-trips" class="metric-value">0</div>
+        <div class="metric-sub">taxi.fact_trips</div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-header">
+          <span class="metric-label">ACTIVE FLEET</span>
+          <span class="metric-icon">🚕</span>
+        </div>
+        <div id="stat-dim-taxi" class="metric-value">0</div>
+        <div class="metric-sub">taxi.dim_taxi</div>
+      </div>
+    </section>
+
+    <!-- Main Workspace -->
+    <div class="workspace-grid">
+      <!-- Left Column: Scenario & Generator Controls -->
+      <section class="panel control-panel">
+        <div class="panel-header">
+          <h2 class="panel-title">⚙️ Traffic Scenario & Mock Generator</h2>
+          <span class="badge-pill">ClickHouse + dbt</span>
+        </div>
+
+        <form id="generator-form" class="form-body">
+          <!-- Scenario Picker -->
+          <div class="form-group">
+            <label class="form-label">Select Traffic Scenario</label>
+            <div class="scenario-grid">
+              <label class="scenario-card selected" data-scenario="normal">
+                <input type="radio" name="scenario" value="normal" checked>
+                <div class="scenario-icon">🚦</div>
+                <div class="scenario-content">
+                  <div class="scenario-title">Normal Weekday</div>
+                  <div class="scenario-desc">Standard morning & evening rush peaks (07-09h, 17-19h)</div>
+                </div>
+              </label>
+
+              <label class="scenario-card" data-scenario="rain">
+                <input type="radio" name="scenario" value="rain">
+                <div class="scenario-icon">🌧️</div>
+                <div class="scenario-content">
+                  <div class="scenario-title">Monsoon Rain Gridlock</div>
+                  <div class="scenario-desc">Severe congestion, speed drops to 8-15 km/h, 90% occupied</div>
+                </div>
+              </label>
+
+              <label class="scenario-card" data-scenario="airport">
+                <input type="radio" name="scenario" value="airport">
+                <div class="scenario-icon">✈️</div>
+                <div class="scenario-content">
+                  <div class="scenario-title">Airport Express Surge</div>
+                  <div class="scenario-desc">High-speed corridor trips to Suvarnabhumi & Don Mueang</div>
+                </div>
+              </label>
+
+              <label class="scenario-card" data-scenario="nightlife">
+                <input type="radio" name="scenario" value="nightlife">
+                <div class="scenario-icon">🏮</div>
+                <div class="scenario-content">
+                  <div class="scenario-title">Midnight Bangkok</div>
+                  <div class="scenario-desc">Late-night surge (21-04h) in Thonglor, Sukhumvit, RCA</div>
+                </div>
+              </label>
+
+              <label class="scenario-card chaos-card" data-scenario="chaos">
+                <input type="radio" name="scenario" value="chaos">
+                <div class="scenario-icon">⚠️</div>
+                <div class="scenario-content">
+                  <div class="scenario-title">Chaos Engineering Mode</div>
+                  <div class="scenario-desc">Injects 5% corrupted records to test Pandera quarantine & dbt tests</div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Parameters Slider -->
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="num-taxis" class="form-label">
+                Fleet Size: <span id="fleet-size-val" class="highlight-val">50 taxis</span>
+              </label>
+              <input type="range" id="num-taxis" min="10" max="500" step="10" value="50" class="range-slider">
+            </div>
+
+            <div class="form-group flex-1">
+              <label for="num-days" class="form-label">
+                Simulation Span: <span id="days-val" class="highlight-val">3 days</span>
+              </label>
+              <input type="range" id="num-days" min="1" max="7" step="1" value="3" class="range-slider">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="start-date" class="form-label">Simulation Date</label>
+              <input type="date" id="start-date" value="2018-02-01" class="input-text">
+            </div>
+          </div>
+
+          <!-- Master Action Buttons -->
+          <div class="action-buttons-group">
+            <button type="button" id="btn-run-all" class="btn btn-primary btn-glow">
+              <span class="btn-icon">⚡</span>
+              <span>Run Full Pipeline (One-Click)</span>
+            </button>
+            <div class="btn-subrow">
+              <button type="button" id="btn-generate" class="btn btn-secondary">
+                <span>🚕 Generate Data</span>
+              </button>
+              <button type="button" id="btn-load" class="btn btn-secondary">
+                <span>⚡ Load ClickHouse</span>
+              </button>
+              <button type="button" id="btn-dbt" class="btn btn-secondary">
+                <span>🔄 Run dbt</span>
+              </button>
+              <button type="button" id="btn-reset" class="btn btn-danger">
+                <span>🧹 Reset</span>
+              </button>
+            </div>
+          </div>
+        </form>
+      </section>
+
+      <!-- Right Column: Live Terminal & Platform Links -->
+      <section class="panel right-panel">
+        <div class="panel-header">
+          <h2 class="panel-title">📟 Execution Logs & Live Console</h2>
+          <button id="btn-clear-logs" class="btn-link">Clear</button>
+        </div>
+
+        <div class="terminal-container">
+          <div class="terminal-header">
+            <div class="terminal-dots">
+              <span class="dot dot-red"></span>
+              <span class="dot dot-yellow"></span>
+              <span class="dot dot-green"></span>
+            </div>
+            <span class="terminal-title">bash — platform-orchestrator</span>
+          </div>
+          <pre id="terminal-logs" class="terminal-body">
+[system] Bangkok Taxi Data Platform Control Center ready.
+[system] ClickHouse: connected (db: taxi)
+[system] Select a scenario and click "Run Full Pipeline" to start.
+          </pre>
+        </div>
+
+        <!-- Quick Access Hub -->
+        <div class="hub-section">
+          <h3 class="hub-title">🔗 Platform Service Portals</h3>
+          <div class="portal-links">
+            <a href="http://localhost:3000" target="_blank" class="portal-card">
+              <span class="portal-icon">📊</span>
+              <div>
+                <div class="portal-name">Grafana Dashboards</div>
+                <div class="portal-url">localhost:3000</div>
+              </div>
+            </a>
+            <a href="http://localhost:8080" target="_blank" class="portal-card">
+              <span class="portal-icon">🌐</span>
+              <div>
+                <div class="portal-name">Airflow DAGs</div>
+                <div class="portal-url">localhost:8080</div>
+              </div>
+            </a>
+            <a href="http://localhost:9001" target="_blank" class="portal-card">
+              <span class="portal-icon">🪣</span>
+              <div>
+                <div class="portal-name">MinIO Data Lake</div>
+                <div class="portal-url">localhost:9001</div>
+              </div>
+            </a>
+            <a href="http://localhost:8123" target="_blank" class="portal-card">
+              <span class="portal-icon">⚡</span>
+              <div>
+                <div class="portal-name">ClickHouse OLAP</div>
+                <div class="portal-url">localhost:8123</div>
+              </div>
+            </a>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

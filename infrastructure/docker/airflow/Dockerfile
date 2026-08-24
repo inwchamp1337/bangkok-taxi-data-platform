@@ -19,6 +19,8 @@ RUN pip install --no-cache-dir \
     python-dotenv>=1.0.0 \
     structlog>=24.0.0 \
     dbt-clickhouse>=1.8.0 \
+    fastapi>=0.110.0 \
+    uvicorn>=0.30.0 \
     pytest>=8.0.0 \
     pytest-cov>=5.0.0
 

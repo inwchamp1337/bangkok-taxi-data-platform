@@ -104,38 +104,49 @@ cp .env.example .env
 make up
 ```
 
-This starts:
-| Service | URL | Credentials |
-|---------|-----|-------------|
-| **Airflow** | http://localhost:8080 | admin / admin |
-| **MinIO** | http://localhost:9001 | minio_admin / minio_secret_123 |
-| **Grafana** | http://localhost:3000 | admin / grafana_secret |
-| **ClickHouse** | http://localhost:8123 | default / clickhouse_secret |
+This starts all containerized services:
+| Service | URL | Role / Credentials |
+|---------|-----|--------------------|
+| **Control Panel UI** | **http://localhost:5000** | **Interactive Mock Simulator & Pipeline Control** |
+| **Grafana** | http://localhost:3000 | Dashboards (`admin` / `grafana_secret`) |
+| **Airflow** | http://localhost:8080 | Orchestrator (`admin` / `admin`) |
+| **MinIO** | http://localhost:9001 | S3 Data Lake (`minio_admin` / `minio_secret_123`) |
+| **ClickHouse** | http://localhost:8123 | OLAP Database (Native port: 9009) |
 
-### 3. Initialize ClickHouse Schema
+---
+
+### 3. One-Click Interactive Demo (Option A — Web UI)
+Open **[http://localhost:5000](http://localhost:5000)** in your browser:
+- Select from 5 traffic scenarios:
+  - 🚦 **Normal Weekday**: Regular morning/evening rush hour peaks
+  - 🌧️ **Monsoon Rain Gridlock**: Average speed drops to 8-15 km/h, 90% occupancy
+  - ✈️ **Airport Express Surge**: High-speed highway trips to BKK & DMK
+  - 🏮 **Midnight Bangkok**: Late-night nightlife surge in Thonglor, Sukhumvit, RCA
+  - ⚠️ **Chaos Engineering Mode**: Injects 5% corrupted records to test Pandera quarantine & dbt tests
+- Click **⚡ Run Full Pipeline (One-Click)** to generate, validate, load, transform, and test automatically!
+
+---
+
+### 4. One-Command CLI Demo (Option B — Terminal)
 ```bash
-make setup
+make demo
 ```
+*Runs the full lifecycle inside Docker: generates mock data ➡️ validates & loads ➡️ dbt run ➡️ dbt test.*
 
-### 4. Generate Sample Data (for testing)
-```bash
-python scripts/generate_sample_data.py --taxis 50 --days 3
-```
+---
 
-### 5. Run the Pipeline
+### 5. Ingest Real iTIC Data (Full Dataset via Airflow)
+1. Open **[http://localhost:8080](http://localhost:8080)**
+2. Unpause and trigger `taxi_ingestion` DAG with parameter `{"year_month": "201802"}`
+3. Watch the autonomous pipeline stream ~96M+ rows into ClickHouse!
 
-**Option A: Via Airflow UI**
-1. Go to http://localhost:8080
-2. Trigger `taxi_ingestion` DAG with parameter `year_month: "201802"`
+---
 
-**Option B: Via CLI**
-```bash
-make ingest MONTH=201802
-make dbt-run
-```
-
-### 6. View Dashboards
-Open Grafana at http://localhost:3000 → Bangkok Taxi folder
+### 6. View Analytics Dashboards
+Open **[http://localhost:3000](http://localhost:3000)** ➡️ Dashboards ➡️ Bangkok Taxi folder:
+1. **🚕 Fleet Overview**: Active taxis count, empty ratio gauge, speed trends
+2. **📍 Hotspot Analysis**: Top pickup/dropoff geohashes, peak demand hours, OD matrix
+3. **🚖 Trip Analytics**: Trip duration/distance distributions, average speeds
 
 ---
 
