@@ -11,7 +11,7 @@
   <!-- Leaflet CSS & JS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/style.css?v=2">
 </head>
 <body>
   <!-- Background Glow FX -->
@@ -182,6 +182,10 @@
               <button type="button" id="btn-dbt" class="btn btn-secondary">
                 <span>🔄 Run dbt</span>
               </button>
+              <button type="button" id="btn-live-stream" class="btn" style="background-color: #ef4444; color: white;">
+                <span id="live-icon">🔴</span>
+                <span id="live-text">Start Live Stream</span>
+              </button>
               <button type="button" id="btn-reset" class="btn btn-danger">
                 <span>🧹 Reset</span>
               </button>
@@ -263,6 +267,6 @@
   <!-- Toast Notification Container -->
   <div id="toast-container" class="toast-container"></div>
 
-  <script src="/static/app.js"></script>
+  <script src="/static/app.js?v=2"></script>
 </body>
 </html>

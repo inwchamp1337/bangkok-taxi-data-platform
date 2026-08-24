@@ -183,6 +183,41 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // Live Stream Logic
+  const btnLiveStream = document.getElementById('btn-live-stream');
+  const liveIcon = document.getElementById('live-icon');
+  const liveText = document.getElementById('live-text');
+  let isLive = false;
+
+  async function checkLiveStatus() {
+    try {
+      const res = await fetch('/api/stream/status');
+      const data = await res.json();
+      isLive = data.is_running;
+      if (isLive) {
+        liveIcon.classList.add('pulse-dot');
+        liveIcon.style.color = 'white';
+        liveText.textContent = 'Stop Live Stream';
+        btnLiveStream.style.backgroundColor = '#10b981'; // Green to stop
+      } else {
+        liveIcon.classList.remove('pulse-dot');
+        liveText.textContent = 'Start Live Stream';
+        btnLiveStream.style.backgroundColor = '#ef4444'; // Red to start
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  btnLiveStream.addEventListener('click', async () => {
+    const endpoint = isLive ? '/api/stream/stop' : '/api/stream/start';
+    await fetch(endpoint, { method: 'POST' });
+    await checkLiveStatus();
+  });
+
+  setInterval(checkLiveStatus, 5000);
+  checkLiveStatus();
+
   // --- Live Fleet Tracking Map Setup ---
   let fleetMap = L.map('fleet-map').setView([13.7563, 100.5018], 11);
   L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {

@@ -7,7 +7,9 @@ ClickHouse loading, and dbt transformation runs.
 
 from __future__ import annotations
 
+import asyncio
 import logging
+import random
 import subprocess
 from datetime import datetime
 from pathlib import Path
@@ -361,6 +363,85 @@ async def get_fleet_locations() -> dict[str, Any]:
     except Exception as exc:
         logger.error("Failed to fetch fleet locations: %s", exc)
         return {"status": "error", "message": str(exc), "count": 0, "data": []}
+
+# --- Live Streaming Mode ---
+LIVE_TASK = None
+LIVE_FLEET = []
+
+async def live_stream_worker():
+    global LIVE_FLEET
+    client = get_clickhouse_client()
+    base_lat, base_lon = 13.7563, 100.5018
+    
+    # Initialize 50 live taxis if empty
+    if not LIVE_FLEET:
+        for i in range(50):
+            LIVE_FLEET.append({
+                "id": f"live_taxi_{i:03d}_{random.randint(100,999)}",
+                "lat": base_lat + random.uniform(-0.08, 0.08),
+                "lon": base_lon + random.uniform(-0.08, 0.08),
+                "speed": random.randint(10, 60),
+                "vacant": random.choice([0, 1])
+            })
+            
+    while True:
+        try:
+            now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            rows_to_insert = []
+            
+            for v in LIVE_FLEET:
+                # Random walk towards the center or randomly
+                v["lat"] += random.uniform(-0.0008, 0.0008)
+                v["lon"] += random.uniform(-0.0008, 0.0008)
+                
+                # Keep within Bangkok roughly
+                v["lat"] = max(13.5, min(14.0, v["lat"]))
+                v["lon"] = max(100.3, min(100.9, v["lon"]))
+
+                if random.random() < 0.05:
+                    v["vacant"] = 1 - v["vacant"]
+                    v["speed"] = random.randint(5, 75)
+                
+                rows_to_insert.append([
+                    v["id"], 1, v["lat"], v["lon"], now_str, v["speed"], v["vacant"], 1, now_str, "live_stream"
+                ])
+                
+            client.insert(
+                'taxi.raw_gps_pings', 
+                rows_to_insert, 
+                column_names=['vehicle_id', 'gps_valid', 'lat', 'lon', 'timestamp', 'speed', 'passenger_lamp', 'engine_acc', '_loaded_at', '_source_file']
+            )
+            logger.info(f"Live stream injected {len(rows_to_insert)} rows")
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            logger.error(f"Live stream error: {e}")
+            
+        await asyncio.sleep(3)
+
+@app.post("/api/stream/start")
+async def start_stream():
+    global LIVE_TASK
+    if LIVE_TASK is None or LIVE_TASK.done():
+        LIVE_TASK = asyncio.create_task(live_stream_worker())
+        return {"status": "success", "message": "Live stream started"}
+    return {"status": "success", "message": "Live stream already running"}
+
+@app.post("/api/stream/stop")
+async def stop_stream():
+    global LIVE_TASK
+    if LIVE_TASK and not LIVE_TASK.done():
+        LIVE_TASK.cancel()
+        LIVE_TASK = None
+        return {"status": "success", "message": "Live stream stopped"}
+    return {"status": "success", "message": "Live stream not running"}
+
+@app.get("/api/stream/status")
+async def stream_status():
+    global LIVE_TASK
+    is_running = LIVE_TASK is not None and not LIVE_TASK.done()
+    return {"status": "success", "is_running": is_running}
+
 @app.post("/api/reset")
 async def reset_database() -> dict[str, Any]:
     """Truncate ClickHouse tables and clear sample directory."""

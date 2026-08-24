@@ -14,10 +14,7 @@ from datetime import datetime
 from pathlib import Path
 
 import clickhouse_connect
-import polars as pl
-
 from src.config.settings import get_settings
-from src.validation.schemas import COLUMN_NAMES
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +70,8 @@ def load_csv_from_s3(minio_bucket: str, minio_key: str, source_file: str) -> dic
         '{s3_url}', 
         '{settings.minio.root_user}', 
         '{settings.minio.root_password}', 
-        'CSV'
+        'CSV',
+        'c1 String, c2 Int8, c3 Float32, c4 Float32, c5 String, c6 Int32, c7 Int8, c8 Int8'
     )
     """
 
