@@ -208,34 +208,40 @@
 
         <!-- Quick Access Hub -->
         <div class="hub-section">
-          <h3 class="hub-title">🔗 Platform Service Portals</h3>
+          <div class="hub-header-row">
+            <h3 class="hub-title">🔗 Platform Portals (Auto-Login Enabled)</h3>
+          </div>
           <div class="portal-links">
             <a href="http://localhost:3000" target="_blank" class="portal-card">
               <span class="portal-icon">📊</span>
-              <div>
+              <div class="portal-info">
                 <div class="portal-name">Grafana Dashboards</div>
                 <div class="portal-url">localhost:3000</div>
+                <span class="portal-badge badge-auto">⚡ Auto-Login (Admin)</span>
               </div>
             </a>
             <a href="http://localhost:8080" target="_blank" class="portal-card">
               <span class="portal-icon">🌐</span>
-              <div>
+              <div class="portal-info">
                 <div class="portal-name">Airflow DAGs</div>
                 <div class="portal-url">localhost:8080</div>
+                <span class="portal-badge badge-auto">⚡ Auto-Login (Admin)</span>
               </div>
             </a>
             <a href="http://localhost:9001" target="_blank" class="portal-card">
               <span class="portal-icon">🪣</span>
-              <div>
+              <div class="portal-info">
                 <div class="portal-name">MinIO Data Lake</div>
                 <div class="portal-url">localhost:9001</div>
+                <span class="portal-badge badge-cred">minio_admin / minio_secret_123</span>
               </div>
             </a>
             <a href="http://localhost:8123" target="_blank" class="portal-card">
               <span class="portal-icon">⚡</span>
-              <div>
+              <div class="portal-info">
                 <div class="portal-name">ClickHouse OLAP</div>
                 <div class="portal-url">localhost:8123</div>
+                <span class="portal-badge badge-cred">default / clickhouse_secret</span>
               </div>
             </a>
           </div>

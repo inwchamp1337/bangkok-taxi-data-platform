@@ -130,13 +130,7 @@ services:
     entrypoint: >
       /bin/bash -c "
       airflow db migrate;
-      airflow users create
-        --username admin
-        --password admin
-        --firstname Admin
-        --lastname User
-        --role Admin
-        --email admin@example.com || true;
+      airflow users create --username admin --password admin --firstname Admin --lastname User --role Admin --email admin@example.com || true;
       echo '✅ Airflow initialized';
       "
     networks:
@@ -163,6 +157,7 @@ services:
       - ./dbt_taxi:/opt/dbt_taxi:ro
       - ./scripts:/opt/airflow/scripts:ro
       - ./tests:/opt/airflow/tests:ro
+      - ./infrastructure/docker/airflow/webserver_config.py:/opt/airflow/webserver_config.py:ro
       - airflow_logs:/opt/airflow/logs
       - ./data:/opt/airflow/data
     command: airflow webserver --port 8080
@@ -198,6 +193,7 @@ services:
       - ./dbt_taxi:/opt/dbt_taxi
       - ./scripts:/opt/airflow/scripts:ro
       - ./tests:/opt/airflow/tests:ro
+      - ./infrastructure/docker/airflow/webserver_config.py:/opt/airflow/webserver_config.py:ro
       - airflow_logs:/opt/airflow/logs
       - ./data:/opt/airflow/data
     command: airflow scheduler
@@ -206,7 +202,7 @@ services:
       - taxi-network
 
   # ---------------------------------------------------------------------------
-  # Grafana — Visualization
+  # Grafana — Visualization (Auto-Login Enabled)
   # ---------------------------------------------------------------------------
   grafana:
     image: grafana/grafana:11.1.0
@@ -220,6 +216,9 @@ services:
       GF_SECURITY_ADMIN_USER: ${GF_SECURITY_ADMIN_USER:-admin}
       GF_SECURITY_ADMIN_PASSWORD: ${GF_SECURITY_ADMIN_PASSWORD:-grafana_secret}
       GF_INSTALL_PLUGINS: grafana-clickhouse-datasource
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: "Admin"
+      GF_AUTH_DISABLE_LOGIN_FORM: "false"
     volumes:
       - grafana_data:/var/lib/grafana
       - ./infrastructure/docker/grafana/provisioning:/etc/grafana/provisioning:ro
