@@ -663,3 +663,10 @@ body {
   from { transform: translateX(100%); opacity: 0; }
   to { transform: translateX(0); opacity: 1; }
 }
+
+/* Live Fleet Tracking Markers */
+.taxi-marker {
+  transition: transform 5s linear !important;
+  margin-left: -3px !important;
+  margin-top: -3px !important;
+}

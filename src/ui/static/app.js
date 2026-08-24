@@ -237,13 +237,14 @@ document.addEventListener('DOMContentLoaded', () => {
   let markersLayer = L.layerGroup().addTo(fleetMap);
   const mapStatus = document.getElementById('map-status');
 
+  let vehicleMarkers = {}; // Store markers by vehicle_id to animate them
+
   async function fetchFleetLocations() {
     try {
       const res = await fetch('/api/fleet/locations');
       if (!res.ok) return;
       const data = await res.json();
       
-      markersLayer.clearLayers();
       if (data.data.length === 0) {
         mapStatus.textContent = 'No active fleet data';
         mapStatus.className = 'badge-pill';
@@ -253,20 +254,45 @@ document.addEventListener('DOMContentLoaded', () => {
       mapStatus.textContent = `Live: ${data.data.length} vehicles`;
       mapStatus.className = 'badge-pill status-online';
 
+      const seenIds = new Set();
       data.data.forEach(v => {
+        seenIds.add(v.vehicle_id);
         const isVacant = v.passenger_lamp === 1;
         const color = isVacant ? '#10b981' : '#f59e0b';
-        const circle = L.circleMarker([v.lat, v.lon], {
-          radius: 3,
-          fillColor: color,
-          color: color,
-          weight: 1,
-          opacity: 0.8,
-          fillOpacity: 0.8
-        });
-        circle.bindPopup(`<b>Taxi ID:</b> ${v.vehicle_id.substring(0,8)}...<br><b>Speed:</b> ${v.speed} km/h<br><b>Status:</b> ${isVacant ? 'Vacant (Green)' : 'Occupied (Orange)'}`);
-        markersLayer.addLayer(circle);
+        const popupContent = `<b>Taxi ID:</b> ${v.vehicle_id.substring(0,8)}...<br><b>Speed:</b> ${v.speed} km/h<br><b>Status:</b> ${isVacant ? 'Vacant (Green)' : 'Occupied (Orange)'}`;
+
+        if (vehicleMarkers[v.vehicle_id]) {
+          // Update existing marker position (CSS transition handles smooth gliding)
+          const m = vehicleMarkers[v.vehicle_id];
+          m.setLatLng([v.lat, v.lon]);
+          m.getPopup().setContent(popupContent);
+          // Update colors if status changed
+          const div = m.getElement().querySelector('div');
+          if (div) {
+            div.style.backgroundColor = color;
+            div.style.color = color;
+          }
+        } else {
+          // Create new marker using divIcon to allow CSS transitions
+          const icon = L.divIcon({
+            className: 'taxi-marker',
+            iconSize: [6, 6],
+            html: `<div style="width: 100%; height: 100%; border-radius: 50%; background-color: ${color}; color: ${color}; box-shadow: 0 0 6px currentColor;"></div>`
+          });
+          const marker = L.marker([v.lat, v.lon], { icon: icon });
+          marker.bindPopup(popupContent);
+          marker.addTo(fleetMap);
+          vehicleMarkers[v.vehicle_id] = marker;
+        }
       });
+
+      // Remove stale markers that haven't sent pings
+      for (const id in vehicleMarkers) {
+        if (!seenIds.has(id)) {
+          fleetMap.removeLayer(vehicleMarkers[id]);
+          delete vehicleMarkers[id];
+        }
+      }
     } catch (e) {
       console.error('Failed to update map', e);
     }
