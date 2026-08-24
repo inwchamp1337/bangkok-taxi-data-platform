@@ -80,7 +80,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT avg(empty_taxi_ratio) AS ratio FROM taxi.fact_hourly_metrics WHERE hour_start >= now() - INTERVAL 24 HOUR",
+          "rawSql": "SELECT avg(empty_taxi_ratio) AS ratio FROM taxi.fact_hourly_metrics",
           "format": 1
         }
       ]
@@ -133,7 +133,7 @@
       }
     ]
   },
-  "time": { "from": "now-7d", "to": "now" },
+  "time": { "from": "now-10y", "to": "now" },
   "title": "🚕 Bangkok Taxi — Fleet Overview",
   "uid": "taxi-overview"
 }

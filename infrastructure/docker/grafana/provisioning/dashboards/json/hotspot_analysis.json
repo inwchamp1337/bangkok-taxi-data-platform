@@ -86,7 +86,7 @@
       }
     ]
   },
-  "time": { "from": "now-30d", "to": "now" },
+  "time": { "from": "now-10y", "to": "now" },
   "title": "📍 Bangkok Taxi — Hotspot Analysis",
   "uid": "taxi-hotspot"
 }

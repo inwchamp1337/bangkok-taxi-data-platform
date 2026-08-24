@@ -7,282 +7,208 @@
   <meta name="description" content="Interactive Mock Data Simulator & Pipeline Control Plane for Bangkok Taxi Data Engineering Platform">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <!-- Leaflet CSS & JS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <link rel="stylesheet" href="/static/style.css?v=2">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800&family=Source+Serif+4:opsz,wght@8..60,300;8..60,400;8..60,500;8..60,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css?v=3">
 </head>
 <body>
-  <!-- Background Glow FX -->
-  <div class="bg-glow bg-glow-1"></div>
-  <div class="bg-glow bg-glow-2"></div>
+  <div class="page">
 
-  <div class="app-container">
-    <!-- Header -->
-    <header class="app-header">
-      <div class="brand-section">
-        <div class="brand-badge">
-          <span class="taxi-icon">🚕</span>
-        </div>
-        <div>
-          <h1 class="brand-title">Bangkok Taxi Data Platform</h1>
-          <p class="brand-subtitle">Data Engineering Simulation & Pipeline Control Center</p>
-        </div>
+    <!-- ═══════════ Header Tab ═══════════ -->
+    <header class="header-tab">
+      <div class="tab-shape">
+        <span class="tab-icon">🚕</span>
+        <h1 class="tab-title">Bangkok Taxi Data Platform</h1>
       </div>
-      <div class="header-actions">
-        <div id="connection-status" class="status-badge status-loading">
-          <span class="pulse-dot"></span>
-          <span id="status-text">Connecting...</span>
+      <div class="header-right">
+        <div id="connection-status" class="status-pill status-loading">
+          <span class="status-dot"></span>
+          <span id="status-text">Connecting…</span>
         </div>
       </div>
     </header>
 
-    <!-- Top Metrics Row -->
-    <section class="metrics-grid">
-      <div class="metric-card">
-        <div class="metric-header">
-          <span class="metric-label">RAW GPS PINGS</span>
-          <span class="metric-icon">📡</span>
-        </div>
-        <div id="stat-raw-pings" class="metric-value">0</div>
-        <div class="metric-sub">taxi.raw_gps_pings</div>
+    <!-- ═══════════ Stamp Metrics ═══════════ -->
+    <section class="stamp-row">
+      <div class="stamp-card">
+        <div class="stamp-label">Raw GPS Pings</div>
+        <div id="stat-raw-pings" class="stamp-value">0</div>
+        <div class="stamp-table">taxi.raw_gps_pings</div>
       </div>
-
-      <div class="metric-card">
-        <div class="metric-header">
-          <span class="metric-label">STAGED PINGS</span>
-          <span class="metric-icon">🧹</span>
-        </div>
-        <div id="stat-stg-pings" class="metric-value">0</div>
-        <div class="metric-sub">taxi.stg_gps_pings</div>
+      <div class="stamp-card">
+        <div class="stamp-label">Staged Pings</div>
+        <div id="stat-stg-pings" class="stamp-value">0</div>
+        <div class="stamp-table">taxi.stg_gps_pings</div>
       </div>
-
-      <div class="metric-card">
-        <div class="metric-header">
-          <span class="metric-label">COMPLETED TRIPS</span>
-          <span class="metric-icon">🚖</span>
-        </div>
-        <div id="stat-fact-trips" class="metric-value">0</div>
-        <div class="metric-sub">taxi.fact_trips</div>
+      <div class="stamp-card">
+        <div class="stamp-label">Completed Trips</div>
+        <div id="stat-fact-trips" class="stamp-value">0</div>
+        <div class="stamp-table">taxi.fact_trips</div>
       </div>
-
-      <div class="metric-card">
-        <div class="metric-header">
-          <span class="metric-label">ACTIVE FLEET</span>
-          <span class="metric-icon">🚕</span>
-        </div>
-        <div id="stat-dim-taxi" class="metric-value">0</div>
-        <div class="metric-sub">taxi.dim_taxi</div>
+      <div class="stamp-card">
+        <div class="stamp-label">Active Fleet</div>
+        <div id="stat-dim-taxi" class="stamp-value">0</div>
+        <div class="stamp-table">taxi.dim_taxi</div>
       </div>
     </section>
 
-    <!-- Main Workspace -->
-    <div class="workspace-grid">
-      <!-- Left Column: Scenario & Generator Controls -->
-      <section class="panel control-panel">
-        <div class="panel-header">
-          <h2 class="panel-title">⚙️ Traffic Scenario & Mock Generator</h2>
-          <span class="badge-pill">ClickHouse + dbt</span>
+    <!-- ═══════════ Main Two-Column ═══════════ -->
+    <div class="workspace">
+
+      <!-- ── Left: Scenario & Controls ── -->
+      <section class="paper-sheet sheet-left">
+        <div class="sheet-header">
+          <h2 class="sheet-title">⚙ Traffic Scenario & Mock Generator</h2>
+          <span class="tag-pill">ClickHouse + dbt</span>
         </div>
 
-        <form id="generator-form" class="form-body">
-          <!-- Scenario Picker -->
-          <div class="form-group">
-            <label class="form-label">Select Traffic Scenario</label>
-            <div class="scenario-grid">
-              <label class="scenario-card selected" data-scenario="normal">
-                <input type="radio" name="scenario" value="normal" checked>
-                <div class="scenario-icon">🚦</div>
-                <div class="scenario-content">
-                  <div class="scenario-title">Normal Weekday</div>
-                  <div class="scenario-desc">Standard morning & evening rush peaks (07-09h, 17-19h)</div>
-                </div>
-              </label>
+        <div class="ruled-body">
+          <form id="generator-form">
 
-              <label class="scenario-card" data-scenario="rain">
-                <input type="radio" name="scenario" value="rain">
-                <div class="scenario-icon">🌧️</div>
-                <div class="scenario-content">
-                  <div class="scenario-title">Monsoon Rain Gridlock</div>
-                  <div class="scenario-desc">Severe congestion, speed drops to 8-15 km/h, 90% occupied</div>
-                </div>
-              </label>
+            <!-- Scenario Picker -->
+            <fieldset class="field-group">
+              <legend class="field-legend">Select Traffic Scenario</legend>
+              <div class="scenario-list">
+                <label class="scenario-item selected" data-scenario="normal">
+                  <input type="radio" name="scenario" value="normal" checked>
+                  <span class="check-box"></span>
+                  <span class="sc-icon">🚦</span>
+                  <span class="sc-body">
+                    <strong>Normal Weekday</strong>
+                    <small>Standard morning & evening rush peaks (07‑09 h, 17‑19 h)</small>
+                  </span>
+                </label>
 
-              <label class="scenario-card" data-scenario="airport">
-                <input type="radio" name="scenario" value="airport">
-                <div class="scenario-icon">✈️</div>
-                <div class="scenario-content">
-                  <div class="scenario-title">Airport Express Surge</div>
-                  <div class="scenario-desc">High-speed corridor trips to Suvarnabhumi & Don Mueang</div>
-                </div>
-              </label>
+                <label class="scenario-item" data-scenario="rain">
+                  <input type="radio" name="scenario" value="rain">
+                  <span class="check-box"></span>
+                  <span class="sc-icon">🌧️</span>
+                  <span class="sc-body">
+                    <strong>Monsoon Rain Gridlock</strong>
+                    <small>Severe congestion, speed drops to 8‑15 km/h, 90 % occupied</small>
+                  </span>
+                </label>
 
-              <label class="scenario-card" data-scenario="nightlife">
-                <input type="radio" name="scenario" value="nightlife">
-                <div class="scenario-icon">🏮</div>
-                <div class="scenario-content">
-                  <div class="scenario-title">Midnight Bangkok</div>
-                  <div class="scenario-desc">Late-night surge (21-04h) in Thonglor, Sukhumvit, RCA</div>
-                </div>
-              </label>
+                <label class="scenario-item" data-scenario="airport">
+                  <input type="radio" name="scenario" value="airport">
+                  <span class="check-box"></span>
+                  <span class="sc-icon">✈️</span>
+                  <span class="sc-body">
+                    <strong>Airport Express Surge</strong>
+                    <small>High-speed corridor trips to Suvarnabhumi & Don Mueang</small>
+                  </span>
+                </label>
 
-              <label class="scenario-card chaos-card" data-scenario="chaos">
-                <input type="radio" name="scenario" value="chaos">
-                <div class="scenario-icon">⚠️</div>
-                <div class="scenario-content">
-                  <div class="scenario-title">Chaos Engineering Mode</div>
-                  <div class="scenario-desc">Injects 5% corrupted records to test Pandera quarantine & dbt tests</div>
-                </div>
-              </label>
-            </div>
-          </div>
+                <label class="scenario-item" data-scenario="nightlife">
+                  <input type="radio" name="scenario" value="nightlife">
+                  <span class="check-box"></span>
+                  <span class="sc-icon">🏮</span>
+                  <span class="sc-body">
+                    <strong>Midnight Bangkok</strong>
+                    <small>Late-night surge (21‑04 h) in Thonglor, Sukhumvit, RCA</small>
+                  </span>
+                </label>
 
-          <!-- Parameters Slider -->
-          <div class="form-row">
-            <div class="form-group flex-1">
-              <label for="num-taxis" class="form-label">
-                Fleet Size: <span id="fleet-size-val" class="highlight-val">50 taxis</span>
-              </label>
-              <input type="range" id="num-taxis" min="10" max="500" step="10" value="50" class="range-slider">
-            </div>
-
-            <div class="form-group flex-1">
-              <label for="num-days" class="form-label">
-                Simulation Span: <span id="days-val" class="highlight-val">3 days</span>
-              </label>
-              <input type="range" id="num-days" min="1" max="7" step="1" value="3" class="range-slider">
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group flex-1">
-              <label for="start-date" class="form-label">Simulation Date</label>
-              <input type="date" id="start-date" value="2018-02-01" class="input-text">
-            </div>
-          </div>
-
-          <!-- Master Action Buttons -->
-          <div class="action-buttons-group">
-            <button type="button" id="btn-run-all" class="btn btn-primary btn-glow">
-              <span class="btn-icon">⚡</span>
-              <span>Run Selected Scenario</span>
-            </button>
-            <button type="button" id="btn-run-all-scenarios" class="btn btn-primary btn-glow" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); margin-top: 10px;">
-              <span class="btn-icon">🌍</span>
-              <span>Run ALL Scenarios (Full Simulation)</span>
-            </button>
-            <div class="btn-subrow">
-              <button type="button" id="btn-generate" class="btn btn-secondary">
-                <span>🚕 Generate Data</span>
-              </button>
-              <button type="button" id="btn-load" class="btn btn-secondary">
-                <span>⚡ Load ClickHouse</span>
-              </button>
-              <button type="button" id="btn-dbt" class="btn btn-secondary">
-                <span>🔄 Run dbt</span>
-              </button>
-              <div style="display: flex; gap: 8px; align-items: center;">
-                <input type="number" id="live-interval" value="5" min="1" max="10" title="Update Interval (sec)" style="width: 60px; text-align: center; background: #374151; color: white; border: 1px solid #4B5563; border-radius: 4px; padding: 4px;" />
-                <span style="font-size: 0.9em; color: #9CA3AF;">sec</span>
-                <button type="button" id="btn-live-stream" class="btn" style="background-color: #ef4444; color: white;">
-                  <span id="live-icon">🔴</span>
-                  <span id="live-text">Start Live Stream</span>
-                </button>
+                <label class="scenario-item chaos-item" data-scenario="chaos">
+                  <input type="radio" name="scenario" value="chaos">
+                  <span class="check-box"></span>
+                  <span class="sc-icon">⚠️</span>
+                  <span class="sc-body">
+                    <strong>Chaos Engineering Mode</strong>
+                    <small>Injects 5 % corrupted records to test Pandera quarantine & dbt tests</small>
+                  </span>
+                </label>
               </div>
-              <button type="button" id="btn-reset" class="btn btn-danger">
-                <span>🧹 Reset</span>
-              </button>
+            </fieldset>
+
+            <!-- Sliders -->
+            <div class="slider-row">
+              <div class="field-group flex-1">
+                <label for="num-taxis" class="field-label">
+                  Fleet Size: <span id="fleet-size-val" class="hl">50 taxis</span>
+                </label>
+                <input type="range" id="num-taxis" min="10" max="500" step="10" value="50" class="paper-range">
+              </div>
+              <div class="field-group flex-1">
+                <label for="num-days" class="field-label">
+                  Simulation Span: <span id="days-val" class="hl">3 days</span>
+                </label>
+                <input type="range" id="num-days" min="1" max="7" step="1" value="3" class="paper-range">
+              </div>
             </div>
-          </div>
-        </form>
+
+            <div class="field-group">
+              <label for="start-date" class="field-label">Simulation Start Date</label>
+              <input type="date" id="start-date" value="2018-02-01" class="paper-input">
+            </div>
+
+            <!-- Action Buttons (Stamp Style) -->
+            <div class="stamp-buttons">
+              <button type="button" id="btn-run-all" class="stamp-btn stamp-amber">
+                ⚡ Run Selected Scenario
+              </button>
+              <button type="button" id="btn-run-all-scenarios" class="stamp-btn stamp-green">
+                🌍 Run ALL Scenarios
+              </button>
+              <div class="stamp-sub-row">
+                <button type="button" id="btn-generate" class="stamp-btn stamp-small stamp-amber">🚕 Generate</button>
+                <button type="button" id="btn-load" class="stamp-btn stamp-small stamp-blue">⚡ Load CH</button>
+                <button type="button" id="btn-dbt" class="stamp-btn stamp-small stamp-blue">🔄 Run dbt</button>
+                <button type="button" id="btn-reset" class="stamp-btn stamp-small stamp-red">🧹 Reset</button>
+              </div>
+            </div>
+
+          </form>
+        </div>
       </section>
 
-      <!-- Right Column: Live Terminal & Platform Links -->
-      <section class="panel right-panel">
-        <div class="panel-header">
-          <h2 class="panel-title">📟 Execution Logs & Live Console</h2>
-          <button id="btn-clear-logs" class="btn-link">Clear</button>
+      <!-- ── Right: Terminal + Portals ── -->
+      <section class="paper-sheet sheet-right">
+        <div class="sheet-header">
+          <h2 class="sheet-title">📟 Execution Logs</h2>
+          <button id="btn-clear-logs" class="link-btn">Clear</button>
         </div>
 
-        <div class="terminal-container">
-          <div class="terminal-header">
-            <div class="terminal-dots">
-              <span class="dot dot-red"></span>
-              <span class="dot dot-yellow"></span>
-              <span class="dot dot-green"></span>
-            </div>
-            <span class="terminal-title">bash — platform-orchestrator</span>
+        <div class="receipt-box">
+          <div class="receipt-head">
+            <span>✄ ‑ ‑ ‑ ‑ ‑ ‑ ‑ ‑ ‑ ‑ ‑ ‑ ‑ ‑ ‑ ‑ ‑ ‑ ‑ ‑ ‑ ‑ ‑ ‑ ‑ ‑</span>
           </div>
-          <pre id="terminal-logs" class="terminal-body">
-[system] Bangkok Taxi Data Platform Control Center ready.
-[system] ClickHouse: connected (db: taxi)
-[system] Select a scenario and click "Run Full Pipeline" to start.
-          </pre>
+          <pre id="terminal-logs" class="receipt-body">
+[system] Bangkok Taxi Data Platform — Control Center ready.
+[system] Select a scenario and click "Run Selected Scenario" to start.</pre>
         </div>
 
-        <!-- Quick Access Hub -->
-        <div class="hub-section">
-          <div class="hub-header-row">
-            <h3 class="hub-title">🔗 Platform Portals (Auto-Login Enabled)</h3>
-          </div>
-          <div class="portal-links">
-            <a href="http://127.0.0.1:3000" target="_blank" class="portal-card">
-              <span class="portal-icon">📊</span>
-              <div class="portal-info">
-                <div class="portal-name">Grafana Dashboards</div>
-                <div class="portal-url">127.0.0.1:3000</div>
-                <span class="portal-badge badge-auto">⚡ 
-                  <span style="cursor: pointer;" onclick="event.preventDefault(); window.copyToClipboard('admin', 'Grafana Username')" title="Copy Username">admin</span> 
-                  / 
-                  <span style="cursor: pointer;" onclick="event.preventDefault(); window.copyToClipboard('grafana_secret', 'Grafana Password')" title="Copy Password">grafana_secret 📋</span>
-                </span>
-              </div>
+        <!-- Portal Links -->
+        <div class="portal-section">
+          <h3 class="portal-heading">🔗 Platform Portals</h3>
+          <div class="label-grid">
+            <a href="http://127.0.0.1:3000" target="_blank" class="address-label">
+              <strong>📊 Grafana Dashboards</strong>
+              <code>127.0.0.1:3000</code>
+              <span class="cred" onclick="event.preventDefault(); window.copyToClipboard('admin','Username')">admin</span> /
+              <span class="cred" onclick="event.preventDefault(); window.copyToClipboard('grafana_secret','Password')">grafana_secret 📋</span>
             </a>
-
-            <a href="http://127.0.0.1:9001" target="_blank" class="portal-card">
-              <span class="portal-icon">🪣</span>
-              <div class="portal-info">
-                <div class="portal-name">MinIO Data Lake</div>
-                <div class="portal-url">127.0.0.1:9001</div>
-                <span class="portal-badge badge-cred">
-                  <span style="cursor: pointer;" onclick="event.preventDefault(); window.copyToClipboard('minio_admin', 'MinIO Username')" title="Copy Username">minio_admin</span> 
-                  / 
-                  <span style="cursor: pointer;" onclick="event.preventDefault(); window.copyToClipboard('minio_secret_123', 'MinIO Password')" title="Copy Password">minio_secret_123 📋</span>
-                </span>
-              </div>
+            <a href="http://127.0.0.1:9001" target="_blank" class="address-label">
+              <strong>🪣 MinIO Data Lake</strong>
+              <code>127.0.0.1:9001</code>
+              <span class="cred" onclick="event.preventDefault(); window.copyToClipboard('minio_admin','Username')">minio_admin</span> /
+              <span class="cred" onclick="event.preventDefault(); window.copyToClipboard('minio_secret_123','Password')">minio_secret_123 📋</span>
             </a>
-            <a href="http://127.0.0.1:8123" target="_blank" class="portal-card">
-              <span class="portal-icon">⚡</span>
-              <div class="portal-info">
-                <div class="portal-name">ClickHouse OLAP</div>
-                <div class="portal-url">127.0.0.1:8123</div>
-                <span class="portal-badge badge-cred">
-                  <span style="cursor: pointer;" onclick="event.preventDefault(); window.copyToClipboard('default', 'ClickHouse Username')" title="Copy Username">default</span> 
-                  / 
-                  <span style="cursor: pointer;" onclick="event.preventDefault(); window.copyToClipboard('clickhouse_secret', 'ClickHouse Password')" title="Copy Password">clickhouse_secret 📋</span>
-                </span>
-              </div>
+            <a href="http://127.0.0.1:8123" target="_blank" class="address-label">
+              <strong>⚡ ClickHouse OLAP</strong>
+              <code>127.0.0.1:8123</code>
+              <span class="cred" onclick="event.preventDefault(); window.copyToClipboard('default','Username')">default</span> /
+              <span class="cred" onclick="event.preventDefault(); window.copyToClipboard('clickhouse_secret','Password')">clickhouse_secret 📋</span>
             </a>
           </div>
         </div>
       </section>
     </div>
-    </div>
 
-    <!-- Live Fleet Map Section -->
-    <section class="panel map-panel" style="margin-top: 24px;">
-      <div class="panel-header" style="justify-content: space-between; align-items: center; display: flex;">
-        <h2 class="panel-title">🗺️ Live Fleet Tracking Map</h2>
-        <span class="badge-pill" id="map-status">Waiting for data...</span>
-      </div>
-      <div id="fleet-map" style="height: 400px; width: 100%; border-radius: 8px; margin-top: 16px; border: 1px solid rgba(255,255,255,0.1);"></div>
-    </section>
   </div>
 
-  <!-- Toast Notification Container -->
+  <!-- Toast Container -->
   <div id="toast-container" class="toast-container"></div>
 
-  <script src="/static/app.js?v=2"></script>
+  <script src="/static/app.js?v=3"></script>
 </body>
 </html>
