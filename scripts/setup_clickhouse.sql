@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS taxi.raw_gps_pings
     _loaded_at      DateTime       DEFAULT now()  COMMENT 'When this row was loaded',
     _source_file    String         DEFAULT ''     COMMENT 'Source CSV filename'
 )
-ENGINE = MergeTree()
+ENGINE = ReplacingMergeTree(_loaded_at)
 PARTITION BY toYYYYMM(timestamp)
 ORDER BY (vehicle_id, timestamp)
 SETTINGS index_granularity = 8192;

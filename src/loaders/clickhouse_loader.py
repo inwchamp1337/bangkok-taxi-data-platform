@@ -44,115 +44,59 @@ def check_data_exists(client, source_file: str) -> bool:
     return count > 0
 
 
-def load_dataframe_to_clickhouse(
-    df: pl.DataFrame,
-    source_file: str,
-    batch_size: int | None = None,
-) -> int:
+def load_csv_from_s3(minio_bucket: str, minio_key: str, source_file: str) -> dict:
     """
-    Load a validated Polars DataFrame into ClickHouse raw_gps_pings table.
-
-    Args:
-        df: Validated DataFrame with GPS ping data.
-        source_file: Original source filename (for lineage tracking).
-        batch_size: Number of rows per INSERT batch. Defaults to config value.
-
-    Returns:
-        Total number of rows inserted.
+    Load a CSV file directly from MinIO into ClickHouse using s3() table function.
+    This is ELT: bypassing Python memory and relying on ClickHouse speed.
     """
     settings = get_settings()
     client = get_clickhouse_client()
-    batch_size = batch_size or settings.batch_size
 
-    # Check idempotency
-    if check_data_exists(client, source_file):
-        logger.info("Data from %s already loaded, skipping", source_file)
-        return 0
-
-    # Ensure timestamp is datetime and add metadata columns
-    now = datetime.now()
-    if df["timestamp"].dtype == pl.Utf8:
-        df = df.with_columns(
-            pl.col("timestamp").str.to_datetime("%Y-%m-%d %H:%M:%S", strict=False)
-        )
-
-    df = df.with_columns([
-        pl.lit(now).alias("_loaded_at"),
-        pl.lit(source_file).alias("_source_file"),
-    ])
-
-    # Prepare column order matching the ClickHouse table
-    ch_columns = [
-        "vehicle_id",
-        "gps_valid",
-        "lat",
-        "lon",
-        "timestamp",
-        "speed",
-        "passenger_lamp",
-        "engine_acc",
-        "_loaded_at",
-        "_source_file",
-    ]
-
-    total_rows = len(df)
-    inserted = 0
-
-    logger.info("Loading %d rows from %s into ClickHouse (batch_size=%d)", total_rows, source_file, batch_size)
-
-    for start in range(0, total_rows, batch_size):
-        end = min(start + batch_size, total_rows)
-        batch = df.slice(start, end - start)
-
-        # Convert to list of lists for clickhouse-connect
-        data = []
-        for row in batch.iter_rows():
-            # row order: vehicle_id, gps_valid, lat, lon, timestamp, speed, passenger_lamp, engine_acc, _loaded_at, _source_file
-            data.append(list(row))
-
-        client.insert(
-            table="raw_gps_pings",
-            data=data,
-            column_names=ch_columns,
-        )
-
-        inserted += len(data)
-        pct = inserted / total_rows * 100
-        logger.info("  Inserted %d / %d rows (%.1f%%)", inserted, total_rows, pct)
-
-    logger.info("✅ Loaded %d rows from %s into ClickHouse", inserted, source_file)
-    return inserted
-
-
-def load_csv_file(filepath: Path) -> int:
+    # Construct the S3 URL for ClickHouse
+    s3_url = f"http://{settings.minio.endpoint}/{minio_bucket}/{minio_key}"
+    
+    # ClickHouse S3 function requires credentials
+    query = f"""
+    INSERT INTO taxi.raw_gps_pings
+    SELECT 
+        c1 AS vehicle_id,
+        c2 AS gps_valid,
+        c3 AS lat,
+        c4 AS lon,
+        toDateTimeOrNull(c5, 'Asia/Bangkok') AS timestamp,
+        c6 AS speed,
+        c7 AS passenger_lamp,
+        c8 AS engine_acc,
+        now() AS _loaded_at,
+        '{source_file}' AS _source_file
+    FROM s3(
+        '{s3_url}', 
+        '{settings.minio.root_user}', 
+        '{settings.minio.root_password}', 
+        'CSV'
+    )
     """
-    Read, validate, and load a single CSV file into ClickHouse.
 
-    This is the high-level entry point that combines validation + loading.
+    logger.info("Executing ClickHouse S3 load for %s", source_file)
+    
+    try:
+        # We can't easily get the number of rows inserted from the Python client for an INSERT SELECT
+        # without running a count query before/after, but we can just execute it.
+        client.command(query)
+        logger.info("✅ Successfully loaded %s via S3", source_file)
+        return {"file": source_file, "status": "success"}
+    except Exception as exc:
+        logger.error("❌ Failed to load %s via S3: %s", source_file, exc)
+        return {"file": source_file, "status": "error", "error": str(exc)}
 
-    Args:
-        filepath: Path to the CSV file.
 
-    Returns:
-        Number of valid rows inserted.
+def load_csv_file(filepath: Path) -> dict:
     """
-    from src.validation.validators import validate_file
+    Legacy wrapper for local files. This now assumes the file must be uploaded to MinIO first.
+    For the Control Panel, we should upload the file to MinIO and then call load_csv_from_s3.
+    """
+    raise NotImplementedError("Direct local CSV loading is disabled in favor of ELT via S3. Upload to MinIO first.")
 
-    valid_df, invalid_df, report = validate_file(filepath)
-
-    if len(invalid_df) > 0:
-        logger.warning(
-            "⚠️ %d invalid rows in %s (%.1f%% invalid rate)",
-            len(invalid_df),
-            filepath.name,
-            100 - report.valid_pct,
-        )
-
-    if len(valid_df) == 0:
-        logger.error("No valid rows in %s, skipping load", filepath.name)
-        return 0
-
-    return load_dataframe_to_clickhouse(valid_df, source_file=filepath.name)
 
 
 if __name__ == "__main__":

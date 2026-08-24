@@ -166,6 +166,9 @@ async def generate_mock_data(req: GenerateRequest) -> dict[str, Any]:
 @app.post("/api/load")
 async def load_to_clickhouse() -> dict[str, Any]:
     """Validate and load all generated sample files into ClickHouse."""
+    from src.ingestion.uploader import upload_files_to_minio
+    from src.loaders.clickhouse_loader import load_csv_from_s3
+
     settings = get_settings()
     sample_dir = settings.sample_dir
     files = sorted(sample_dir.glob("*.csv"))
@@ -176,14 +179,27 @@ async def load_to_clickhouse() -> dict[str, Any]:
     total_loaded = 0
     file_reports = []
 
-    for f in files:
-        rows = load_csv_file(f)
-        total_loaded += rows
-        file_reports.append({"file": f.name, "rows_loaded": rows})
+    # Upload all to MinIO first (we'll just use a mock year_month for now)
+    year_month = "201802"
+    uploaded_keys = upload_files_to_minio(files, year_month)
+
+    # Now load them using ClickHouse S3 integration (ELT)
+    for f, key in zip(files, uploaded_keys):
+        res = load_csv_from_s3(
+            minio_bucket=settings.minio.raw_bucket,
+            minio_key=key,
+            source_file=f.name
+        )
+        # We don't have accurate row counts natively from INSERT SELECT without extra queries,
+        # so we'll just record success and estimate based on local file for the UI.
+        est_rows = sum(1 for _ in open(f))
+        if res["status"] == "success":
+            total_loaded += est_rows
+        file_reports.append({"file": f.name, "rows_loaded": est_rows if res["status"] == "success" else 0})
 
     return {
         "status": "success",
-        "message": f"Loaded {total_loaded:,} valid records into ClickHouse",
+        "message": f"Loaded estimated {total_loaded:,} records into ClickHouse via S3",
         "files_processed": len(files),
         "total_loaded": total_loaded,
         "details": file_reports,

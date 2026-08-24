@@ -1,56 +1,38 @@
 # 🚕 Bangkok Taxi Data Engineering Platform
 
-A production-grade data platform that processes **100M+ GPS probe records** from Bangkok taxis, demonstrating modern data engineering practices: batch ingestion, data quality validation, dimensional modeling, OLAP analytics, and pipeline orchestration.
+A production-grade **ultra-lean ELT data platform** that processes **100M+ GPS probe records** from Bangkok taxis. This project demonstrates modern data engineering practices: direct S3-to-OLAP ingestion, data quality validation via dbt, dimensional modeling, and interactive pipeline simulation—all running on a lightweight 4-container stack.
 
 Built with real-world data from the [iTIC Foundation](https://www.iticfoundation.org/) (CC-BY 4.0).
 
 ---
 
-## 🏗️ Architecture
+## 🏗️ Architecture (The Ultra-Lean ELT Stack)
 
 ```mermaid
 graph LR
-    subgraph Source
-        iTIC[("iTIC Open Data\n~1GB/month compressed")]
+    subgraph Control Plane
+        UI["FastAPI Control Panel\n(Simulation & Orchestration)"]
     end
 
-    subgraph Ingestion
-        DL["Download\n(httpx + MD5)"]
-        EX["Extract\n(tar.bz2 → CSV)"]
-        UP["Upload\n(→ MinIO)"]
+    subgraph Data Lake
+        MINIO[("MinIO\n(Raw S3 Storage)")]
     end
 
-    subgraph Storage
-        MINIO[("MinIO\nHive-partitioned")]
-    end
-
-    subgraph Validation
-        VAL["Pandera\n+ Polars"]
-        QR[("Quarantine\nZone")]
-    end
-
-    subgraph Warehouse
-        CH[("ClickHouse\nMergeTree\nPartitioned by month")]
-    end
-
-    subgraph Transform
-        DBT["dbt\nstaging → intermediate → marts"]
+    subgraph Data Warehouse (ClickHouse)
+        CH_RAW[("raw_gps_pings\n(ReplacingMergeTree)")]
+        DBT["dbt\n(Data Quality & Transforms)"]
     end
 
     subgraph Analytics
         GF["Grafana\n3 Dashboards"]
     end
 
-    subgraph Orchestration
-        AF["Airflow\nTaskFlow API"]
-    end
-
-    iTIC --> DL --> EX --> UP --> MINIO
-    MINIO --> VAL
-    VAL -->|valid| CH
-    VAL -->|invalid| QR
-    CH --> DBT --> GF
-    AF -.-> DL & VAL & DBT
+    UI -->|1. Uploads Mock/Real Data| MINIO
+    UI -->|2. Triggers S3 Load| CH_RAW
+    MINIO -.->|s3() direct read| CH_RAW
+    UI -->|3. Triggers Transform| DBT
+    CH_RAW --> DBT
+    DBT --> GF
 ```
 
 ---
@@ -90,7 +72,7 @@ VehicleID,gpsvalid,lat,lon,timestamp,speed,passenger_lamp,engine_acc
 ### Prerequisites
 - Docker & Docker Compose
 - Python 3.11+
-- ~15 GB free disk space (for 1 month of data)
+- ~15 GB free disk space (for 1 month of full data)
 
 ### 1. Clone & Configure
 ```bash
@@ -101,48 +83,33 @@ cp .env.example .env
 
 ### 2. Start Infrastructure
 ```bash
-make up
+docker compose up -d
 ```
 
-This starts all containerized services:
+This starts the ultra-lean stack (4 containers only):
 | Service | URL | Role / Credentials |
 |---------|-----|--------------------|
 | **Control Panel UI** | **http://localhost:5000** | **Interactive Mock Simulator & Pipeline Control** |
 | **Grafana** | http://localhost:3000 | Dashboards (`admin` / `grafana_secret`) |
-| **Airflow** | http://localhost:8080 | Orchestrator (`admin` / `admin`) |
 | **MinIO** | http://localhost:9001 | S3 Data Lake (`minio_admin` / `minio_secret_123`) |
 | **ClickHouse** | http://localhost:8123 | OLAP Database (Native port: 9009) |
 
 ---
 
-### 3. One-Click Interactive Demo (Option A — Web UI)
+### 3. One-Click Interactive Demo
 Open **[http://localhost:5000](http://localhost:5000)** in your browser:
 - Select from 5 traffic scenarios:
   - 🚦 **Normal Weekday**: Regular morning/evening rush hour peaks
   - 🌧️ **Monsoon Rain Gridlock**: Average speed drops to 8-15 km/h, 90% occupancy
   - ✈️ **Airport Express Surge**: High-speed highway trips to BKK & DMK
   - 🏮 **Midnight Bangkok**: Late-night nightlife surge in Thonglor, Sukhumvit, RCA
-  - ⚠️ **Chaos Engineering Mode**: Injects 5% corrupted records to test Pandera quarantine & dbt tests
-- Click **⚡ Run Full Pipeline (One-Click)** to generate, validate, load, transform, and test automatically!
+  - ⚠️ **Chaos Engineering Mode**: Injects 5% corrupted records to test dbt validation rules
+- Or click **⚡ Run ALL Scenarios** to simulate and load all scenarios sequentially.
+- The pipeline will automatically generate data, push to MinIO, ingest into ClickHouse via native `s3()`, and run all dbt models and tests.
 
 ---
 
-### 4. One-Command CLI Demo (Option B — Terminal)
-```bash
-make demo
-```
-*Runs the full lifecycle inside Docker: generates mock data ➡️ validates & loads ➡️ dbt run ➡️ dbt test.*
-
----
-
-### 5. Ingest Real iTIC Data (Full Dataset via Airflow)
-1. Open **[http://localhost:8080](http://localhost:8080)**
-2. Unpause and trigger `taxi_ingestion` DAG with parameter `{"year_month": "201802"}`
-3. Watch the autonomous pipeline stream ~96M+ rows into ClickHouse!
-
----
-
-### 6. View Analytics Dashboards
+### 4. View Analytics Dashboards
 Open **[http://localhost:3000](http://localhost:3000)** ➡️ Dashboards ➡️ Bangkok Taxi folder:
 1. **🚕 Fleet Overview**: Active taxis count, empty ratio gauge, speed trends
 2. **📍 Hotspot Analysis**: Top pickup/dropoff geohashes, peak demand hours, OD matrix
@@ -154,14 +121,14 @@ Open **[http://localhost:3000](http://localhost:3000)** ➡️ Dashboards ➡️
 
 ```
 bangkok-taxi-data-platform/
-├── docker-compose.yml              # Full infrastructure stack
+├── docker-compose.yml              # Ultra-lean 4-container stack
 ├── Makefile                        # Developer shortcuts
 │
 ├── src/                            # Python application code
 │   ├── config/settings.py          # Pydantic centralized config
-│   ├── ingestion/                  # Download → Extract → Upload
-│   ├── validation/                 # Pandera schemas + Polars validators
-│   └── loaders/                    # ClickHouse bulk loader
+│   ├── ingestion/                  # MinIO uploader
+│   ├── loaders/                    # ClickHouse ELT loader via s3()
+│   └── ui/                         # FastAPI Control Panel
 │
 ├── dbt_taxi/                       # dbt transformation project
 │   ├── models/staging/             # stg_gps_pings (clean + filter)
@@ -169,85 +136,23 @@ bangkok-taxi-data-platform/
 │   ├── models/marts/               # fact_trips, fact_hourly_metrics
 │   └── macros/                     # haversine, geohash
 │
-├── airflow/dags/                   # Airflow DAGs
-│   ├── taxi_ingestion_dag.py       # Full pipeline orchestration
-│   └── taxi_dbt_dag.py             # dbt transformation orchestration
-│
 ├── infrastructure/                 # Docker configs + Grafana provisioning
-├── scripts/                        # Sample data generator + ClickHouse DDL
-└── tests/                          # Unit + integration tests
+├── scripts/                        # Mock data generator + DDL
+└── tests/                          # Integration tests
 ```
 
 ---
 
-## 🔄 dbt Model Lineage
-
-```mermaid
-graph TD
-    SRC["raw.gps_pings\n(ClickHouse)"]
-    STG["stg_gps_pings\n(cleaned, filtered)"]
-    INT1["int_trip_segments\n(trip detection)"]
-    INT2["int_taxi_sessions\n(session grouping)"]
-    FACT1["fact_trips\n(completed trips)"]
-    FACT2["fact_hourly_metrics\n(fleet aggregations)"]
-    DIM1["dim_taxi\n(vehicle profiles)"]
-    DIM2["dim_time\n(date dimension)"]
-
-    SRC --> STG
-    STG --> INT1
-    STG --> INT2
-    INT1 --> FACT1
-    STG --> FACT2
-    STG --> DIM1
-    STG --> DIM2
-```
-
----
-
-## 📈 Analytics Use Cases
-
-| Use Case | Model | Description |
-|----------|-------|-------------|
-| Active taxis per hour | `fact_hourly_metrics` | How many taxis are on the road each hour? |
-| Empty taxi ratio | `fact_hourly_metrics` | What % of taxis are cruising without passengers? |
-| Pickup/dropoff hotspots | `fact_trips` | Where do most pickups/dropoffs happen? |
-| Average speed by area | `fact_hourly_metrics` | Congestion proxy by time of day |
-| Trip duration distribution | `fact_trips` | How long do typical trips take? |
-| OD matrix | `fact_trips` | Most common origin-destination pairs |
-| Peak hours | `fact_hourly_metrics` | When is taxi demand highest? |
-| Vehicle utilization | `dim_taxi` | How efficiently is each taxi used? |
-
----
-
-## 🧪 Testing
-
-```bash
-# Unit tests (no Docker needed)
-make test-unit
-
-# Integration tests (uses sample data)
-make test-integration
-
-# dbt tests
-make dbt-test
-
-# All tests
-make test
-```
-
----
-
-## ⚡ Key Design Decisions
+## ⚡ Key Design Decisions (The ELT Migration)
 
 | Decision | Rationale |
 |----------|-----------|
-| **ClickHouse over PostgreSQL** | 100M+ rows with time-series queries — ClickHouse is 10-100x faster for OLAP |
-| **Polars over Pandas** | 3-5x faster CSV processing, lower memory usage for large files |
-| **Incremental dbt models** | Process only new data, not the full 100M+ history each run |
-| **MergeTree partitioned by month** | Efficient partition pruning for date-range queries |
-| **SummingMergeTree for hourly metrics** | Automatic aggregation of overlapping data on merge |
-| **Geohash for spatial analysis** | ~1.2km blocks (precision 6) — good balance of granularity vs cardinality |
-| **MinIO as data lake** | S3-compatible, runs locally, same API as AWS S3 for cloud migration |
+| **ELT over ETL** | By dropping Python-based validation (Pandera/Polars) and loading directly from S3 to ClickHouse via the `s3()` table function, ingestion bottlenecks were entirely eliminated. |
+| **ReplacingMergeTree** | The `raw_gps_pings` table uses `ReplacingMergeTree(_loaded_at)` to guarantee **idempotency**. Duplicate files loaded by mistake are deduplicated automatically at the database level. |
+| **No Airflow (Ultra-Lean)** | Airflow was completely purged to save massive RAM/CPU overhead. Orchestration is now handled entirely by the lightweight FastAPI Control Panel. |
+| **dbt for Data Quality** | Data validation (bounding boxes, speed limits, schema checks) is now done inside ClickHouse using dbt, utilizing database compute rather than python memory. |
+| **ClickHouse over PostgreSQL** | 100M+ rows with time-series queries — ClickHouse is 10-100x faster for OLAP. |
+| **Geohash for spatial analysis** | ~1.2km blocks (precision 6) — good balance of granularity vs cardinality. |
 
 ---
 
