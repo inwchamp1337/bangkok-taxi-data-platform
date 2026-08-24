@@ -28,3 +28,13 @@ vars:
 
   # Geohash precision (6 = ~1.2km blocks)
   geohash_precision: 6
+
+models:
+  taxi:
+    +materialized: table
+    staging:
+      +materialized: view
+    intermediate:
+      +materialized: table
+    marts:
+      +materialized: incremental

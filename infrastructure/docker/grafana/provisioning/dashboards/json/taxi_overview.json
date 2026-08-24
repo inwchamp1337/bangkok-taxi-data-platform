@@ -96,7 +96,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT uniqExact(vehicle_id) AS total_taxis, count() AS total_pings, sum(total_pings) AS total_records FROM taxi.fact_hourly_metrics",
+          "rawSql": "SELECT (SELECT count() FROM taxi.dim_taxi) AS total_taxis, sum(total_pings) AS total_records FROM taxi.fact_hourly_metrics",
           "format": 1
         }
       ]
