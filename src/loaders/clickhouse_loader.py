@@ -69,8 +69,13 @@ def load_dataframe_to_clickhouse(
         logger.info("Data from %s already loaded, skipping", source_file)
         return 0
 
-    # Add metadata columns
+    # Ensure timestamp is datetime and add metadata columns
     now = datetime.now()
+    if df["timestamp"].dtype == pl.Utf8:
+        df = df.with_columns(
+            pl.col("timestamp").str.to_datetime("%Y-%m-%d %H:%M:%S", strict=False)
+        )
+
     df = df.with_columns([
         pl.lit(now).alias("_loaded_at"),
         pl.lit(source_file).alias("_source_file"),
