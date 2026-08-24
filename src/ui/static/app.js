@@ -172,11 +172,13 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   btnGenerate.addEventListener('click', async () => {
-    await executeAction(btnGenerate, 'Data Generation', '/api/generate', getPayload());
+    const result = await executeAction(btnGenerate, 'Data Generation', '/api/generate', getPayload());
+    if (result) promptDbtAfterAction();
   });
 
   btnLoad.addEventListener('click', async () => {
-    await executeAction(btnLoad, 'ClickHouse Load', '/api/load');
+    const result = await executeAction(btnLoad, 'ClickHouse Load', '/api/load');
+    if (result) promptDbtAfterAction();
   });
 
   // ── dbt Run Modal Logic ──
@@ -226,6 +228,14 @@ document.addEventListener('DOMContentLoaded', () => {
       run_tests: runTests
     });
   });
+
+  // ── Prompt dbt After Action ──
+  // Called after generate / load / custom-sim succeeds — shows dbt modal
+  function promptDbtAfterAction() {
+    appendLog('[pipeline] Data ready ✅ — Open dbt modal to transform into marts.');
+    // Small delay so the success toast is visible first
+    setTimeout(() => openDbtModal(), 600);
+  }
 
   btnReset.addEventListener('click', async () => {
     if (confirm('Are you sure you want to truncate all ClickHouse tables and delete mock files?')) {
@@ -362,7 +372,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     appendLog(`[custom] Launching Custom Simulator: ${modeDesc}, ${payload.num_taxis} taxis, (${numSummary}), ${overwriteDesc}`);
 
-    await executeAction(btnOpenCustomModal, 'Custom Simulation', '/api/pipeline/custom-run', payload);
+    const simResult = await executeAction(btnOpenCustomModal, 'Custom Simulation', '/api/pipeline/custom-run', payload);
+    if (simResult) promptDbtAfterAction();
   });
 
   // ── Init ──

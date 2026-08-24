@@ -435,34 +435,15 @@ async def run_custom_simulation_pipeline(req: CustomSimulationRequest) -> dict[s
     # 4. Load into ClickHouse
     load_res = await load_to_clickhouse()
 
-    # 5. Execute dbt
-    dbt_dir = Path("/opt/dbt_taxi") if Path("/opt/dbt_taxi").exists() else Path("dbt_taxi")
-    dbt_cmd = ["dbt", "run", "--no-partial-parse", "--full-refresh"] if req.overwrite else ["dbt", "run", "--no-partial-parse"]
-    
-    try:
-        proc = subprocess.run(dbt_cmd, cwd=str(dbt_dir), capture_output=True, text=True, timeout=180)
-        dbt_run_res = {
-            "status": "success" if proc.returncode == 0 else "error",
-            "message": "dbt models refreshed successfully" if proc.returncode == 0 else "dbt run failed",
-            "stdout": proc.stdout,
-        }
-        if proc.returncode != 0:
-            logger.error(f"Custom dbt run failed: {proc.stderr or proc.stdout}")
-    except Exception as exc:
-        dbt_run_res = {"status": "error", "message": str(exc)}
-
-    # 6. Run dbt test
-    dbt_test_res = await trigger_dbt_test()
-
+    # dbt is now triggered separately via /api/dbt/run from the frontend
     return {
-        "status": "success" if dbt_run_res.get("status") == "success" else "partial_success",
+        "status": "success",
+        "message": f"Generated & loaded — ready for dbt transformation",
         "mode": req.mode,
         "days_simulated": len(dates_list),
         "overwrite": req.overwrite,
         "generate": gen_res,
         "load": load_res,
-        "dbt_run": dbt_run_res,
-        "dbt_test": dbt_test_res,
     }
 
 @app.get("/api/fleet/locations")
