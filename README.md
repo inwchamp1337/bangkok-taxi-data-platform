@@ -89,15 +89,15 @@ docker compose up -d
 This starts the ultra-lean stack (4 containers only):
 | Service | URL | Role / Credentials |
 |---------|-----|--------------------|
-| **Control Panel UI** | **http://localhost:5000** | **Interactive Mock Simulator & Pipeline Control** |
-| **Grafana** | http://localhost:3000 | Dashboards (`admin` / `grafana_secret`) |
-| **MinIO** | http://localhost:9001 | S3 Data Lake (`minio_admin` / `minio_secret_123`) |
-| **ClickHouse** | http://localhost:8123 | OLAP Database (Native port: 9009) |
+| **Control Panel UI** | **http://127.0.0.1:5000** | **Interactive Mock Simulator & Pipeline Control** |
+| **Grafana** | http://127.0.0.1:3000 | Dashboards (`admin` / `grafana_secret`) |
+| **MinIO** | http://127.0.0.1:9001 | S3 Data Lake (`minio_admin` / `minio_secret_123`) |
+| **ClickHouse** | http://127.0.0.1:8123 | OLAP Database (Native port: 9009) |
 
 ---
 
 ### 3. One-Click Interactive Demo
-Open **[http://localhost:5000](http://localhost:5000)** in your browser:
+Open **[http://127.0.0.1:5000](http://127.0.0.1:5000)** in your browser:
 - Select from 5 traffic scenarios:
   - 🚦 **Normal Weekday**: Regular morning/evening rush hour peaks
   - 🌧️ **Monsoon Rain Gridlock**: Average speed drops to 8-15 km/h, 90% occupancy
@@ -110,7 +110,7 @@ Open **[http://localhost:5000](http://localhost:5000)** in your browser:
 ---
 
 ### 4. View Analytics Dashboards
-Open **[http://localhost:3000](http://localhost:3000)** ➡️ Dashboards ➡️ Bangkok Taxi folder:
+Open **[http://127.0.0.1:3000](http://127.0.0.1:3000)** ➡️ Dashboards ➡️ Bangkok Taxi folder:
 1. **🚕 Fleet Overview**: Active taxis count, empty ratio gauge, speed trends
 2. **📍 Hotspot Analysis**: Top pickup/dropoff geohashes, peak demand hours, OD matrix
 3. **🚖 Trip Analytics**: Trip duration/distance distributions, average speeds

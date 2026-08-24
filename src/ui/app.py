@@ -127,10 +127,10 @@ async def get_system_status() -> dict[str, Any]:
             "files": sample_files,
         },
         "services": {
-            "airflow": "http://localhost:8080",
-            "grafana": "http://localhost:3000",
-            "minio": "http://localhost:9001",
-            "clickhouse": "http://localhost:8123",
+            "airflow": "http://127.0.0.1:8080",
+            "grafana": "http://127.0.0.1:3000",
+            "minio": "http://127.0.0.1:9001",
+            "clickhouse": "http://127.0.0.1:8123",
         },
     }
 
