@@ -1,8 +1,30 @@
-# 🚕 Bangkok Taxi Data Engineering Platform
+# 🚕 Bangkok Taxi Data Engineering Platform (Demo & Simulation Suite)
 
-A production-grade **ultra-lean ELT data platform** that processes **100M+ GPS probe records** from Bangkok taxis. This project demonstrates modern data engineering practices: direct S3-to-OLAP ingestion, data quality validation via dbt, dimensional modeling, and interactive pipeline simulation—all running on a lightweight 4-container stack.
+A self-contained, production-grade **Ultra-Lean ELT Data Platform Demo** designed to simulate, ingest, transform, and visualize **Bangkok taxi GPS probe data** (modeled after the 100M+ record [iTIC Open Data Foundation](https://www.iticfoundation.org/) schema).
 
-Built with real-world data from the [iTIC Foundation](https://www.iticfoundation.org/) (CC-BY 4.0).
+> [!NOTE]
+> **Demo & Simulation Platform**: This project runs 100% locally and self-contained. It **does not connect to live external production APIs**. Instead, it features an interactive **in-platform Traffic Simulation Engine** that generates realistic, schema-accurate GPS probe records across customized urban scenarios (rush hours, storm congestion, airport corridors, nightlife surges, and sensor anomaly tests) for rapid local development, benchmarking, and demonstration.
+
+---
+
+## 📸 Screenshots Showcase
+
+### 🖥️ Interactive Web Control Center (`http://127.0.0.1:5000`)
+The web control plane allows you to generate mock traffic datasets, trigger MinIO S3 uploads, execute ClickHouse direct ELT loads, and orchestrate dbt models with real-time feedback:
+
+![FastAPI Control Center UI](docs/images/control_panel.png)
+
+### ⚙️ Advanced Custom Simulation & Scenario Tuning
+Configure exact fleet speed targets, occupancy/vacancy percentages, GPS ping intervals, date spans, and sensor error rates:
+
+![Advanced Custom Simulation Modal](docs/images/simulation_modal.png)
+
+### 📊 Real-Time Grafana Analytics Dashboards (`http://127.0.0.1:3000`)
+Visualizes live OLAP aggregates computed from ClickHouse dimensional marts:
+
+| 🚕 Fleet Overview | 📍 Hotspot & Spatial Demand | 🚖 Trip Analytics & Velocity |
+|:---:|:---:|:---:|
+| ![Grafana Fleet Overview](docs/images/grafana_overview.png) | ![Grafana Hotspots](docs/images/grafana_hotspots.png) | ![Grafana Trip Analytics](docs/images/grafana_trips.png) |
 
 ---
 
@@ -11,7 +33,7 @@ Built with real-world data from the [iTIC Foundation](https://www.iticfoundation
 ```mermaid
 graph LR
     subgraph Control Plane
-        UI["FastAPI Control Panel\n(Simulation & Orchestration)"]
+        UI["FastAPI Control Panel\n(Simulation & Pipeline Engine)"]
     end
 
     subgraph Data Lake
@@ -20,107 +42,78 @@ graph LR
 
     subgraph Data Warehouse (ClickHouse)
         CH_RAW[("raw_gps_pings\n(ReplacingMergeTree)")]
-        DBT["dbt\n(Data Quality & Transforms)"]
+        DBT["dbt\n(Data Quality & Dimensional Marts)"]
     end
 
-    subgraph Analytics
-        GF["Grafana\n3 Dashboards"]
+    subgraph Analytics & Visualization
+        GF["Grafana\n(3 Pre-provisioned Dashboards)"]
     end
 
-    UI -->|1. Uploads Mock/Real Data| MINIO
-    UI -->|2. Triggers S3 Load| CH_RAW
+    UI -->|1. Generates Scenario Data| MINIO
+    UI -->|2. Triggers S3 Direct Load| CH_RAW
     MINIO -.->|s3() direct read| CH_RAW
-    UI -->|3. Triggers Transform| DBT
+    UI -->|3. Triggers Transform & Tests| DBT
     CH_RAW --> DBT
     DBT --> GF
 ```
 
 ---
 
-## 📊 Dataset
+## 🚦 Built-in Traffic Simulation Scenarios
 
-| Property | Value |
-|----------|-------|
-| **Source** | [iTIC Open Data Archives](https://itic.longdo.com/opendata/probe-data/) |
-| **License** | CC-BY 4.0 |
-| **Coverage** | Thailand (focus: Bangkok metro) |
-| **Period** | Jan 2017 — Dec 2025 |
-| **Volume** | ~1-2.5 GB compressed per month |
-| **Records** | 96M–247M per analysis period |
-| **Frequency** | Every 1 min (engine on), 3 min (engine off) |
+| Scenario | Description | Target Speed | Target Vacancy | Anomaly Rate |
+|:---|:---|:---:|:---:|:---:|
+| 🚦 **Normal Weekday** | Regular morning & evening Sukhumvit rush hour flow | ~25 km/h | 35% | 0% |
+| 🌧️ **Monsoon Rain Gridlock** | Heavy rainstorm with extreme congestion and high occupancy | ~8–15 km/h | 10% | 2% |
+| ✈️ **Airport Express Surge** | High-speed express corridor trips to BKK (Suvarnabhumi) & DMK (Don Mueang) | ~45–70 km/h | 25% | 0% |
+| 🏮 **Midnight Bangkok** | Late-night surge around Thonglor, Ekkamai, RCA, and Silom | ~30 km/h | 20% | 1% |
+| ⚠️ **Chaos Engineering Mode** | Injects 5–25% corrupted records (invalid bbox, extreme speed) to test dbt assertions | Varies | 50% | 5–25% |
 
-**Schema (7 fields, no header):**
+---
+
+## 📊 Dataset Schema (iTIC 7-Field Specification)
+
 ```
 VehicleID,gpsvalid,lat,lon,timestamp,speed,passenger_lamp,engine_acc
 ```
 
 | Field | Type | Description |
-|-------|------|-------------|
-| `VehicleID` | string | Hashed unique vehicle identifier |
-| `gpsvalid` | 0/1 | GPS fix quality (1 = enough satellites) |
-| `lat` | float | Latitude (WGS84, 5 decimal places) |
-| `lon` | float | Longitude (WGS84, 5 decimal places) |
-| `timestamp` | datetime | GPS time (UTC+7 Bangkok) |
-| `speed` | int | Speed in km/h |
-| `passenger_lamp` | 0/1 | **1 = vacant (light ON)**, 0 = occupied |
-| `engine_acc` | 0/1 | Engine switch: 1 = running, 0 = off |
+|:---|:---|:---|
+| `VehicleID` | String | Hashed unique vehicle identifier |
+| `gpsvalid` | UInt8 | GPS fix quality (1 = valid fix, 0 = insufficient satellites) |
+| `lat` | Float64 | Latitude (WGS84, Bangkok bounding box 13.4 to 14.3) |
+| `lon` | Float64 | Longitude (WGS84, Bangkok bounding box 100.2 to 101.0) |
+| `timestamp` | DateTime | GPS timestamp in Asia/Bangkok time (UTC+7) |
+| `speed` | UInt16 | Instantaneous speed in km/h |
+| `passenger_lamp` | UInt8 | Vacancy indicator: **1 = Vacant (Light ON)**, 0 = Occupied |
+| `engine_acc` | UInt8 | Engine ignition switch: 1 = Running, 0 = Off |
 
 ---
 
 ## 🚀 Quick Start
 
-### Prerequisites
+### 1. Prerequisites
 - Docker & Docker Compose
 - Python 3.11+
-- ~15 GB free disk space (for 1 month of full data)
 
-### 1. Clone & Configure
-```bash
-git clone https://github.com/your-username/bangkok-taxi-data-platform.git
-cd bangkok-taxi-data-platform
-cp .env.example .env
-```
-
-### 2. Start Infrastructure
+### 2. Start the Stack (4 Containers Only)
 ```bash
 docker compose up -d
 ```
 
-This starts the ultra-lean stack (4 containers only):
-| Service | URL | Role / Credentials |
-|---------|-----|--------------------|
-| **Control Panel UI** | **http://127.0.0.1:5000** | **Interactive Mock Simulator & Pipeline Control** |
-| **Grafana** | http://127.0.0.1:3000 | Dashboards (`admin` / `grafana_secret`) |
-| **MinIO** | http://127.0.0.1:9001 | S3 Data Lake (`minio_admin` / `minio_secret_123`) |
-| **ClickHouse** | http://127.0.0.1:8123 | OLAP Database (Native port: 9009) |
+| Service | Access URL | Credentials | Role |
+|:---|:---|:---|:---|
+| **Control Panel UI** | **http://127.0.0.1:5000** | *None (Public)* | Interactive Simulation & Pipeline Engine |
+| **Grafana** | http://127.0.0.1:3000 | `admin` / `grafana_secret` | Visual Analytics & Dashboards |
+| **MinIO Console** | http://127.0.0.1:9001 | `minio_admin` / `minio_secret_123` | S3 Data Lake Browser (S3 Port: 9000) |
+| **ClickHouse HTTP** | http://127.0.0.1:8123 | `default` / `clickhouse_secret` | High-performance OLAP Database |
 
----
-
-### 3. One-Click Interactive Demo (Web Control Center)
-Open **[http://127.0.0.1:5000](http://127.0.0.1:5000)** in your browser:
-- Select from 5 traffic scenarios:
-  - 🚦 **Normal Weekday**: Regular morning/evening rush hour peaks
-  - 🌧️ **Monsoon Rain Gridlock**: Average speed drops to 8-15 km/h, 90% occupancy
-  - ✈️ **Airport Express Surge**: High-speed highway trips to BKK & DMK
-  - 🏮 **Midnight Bangkok**: Late-night nightlife surge in Thonglor, Sukhumvit, RCA
-  - ⚠️ **Chaos Engineering Mode**: Injects 5% corrupted records to test dbt validation rules
-- Or click **⚡ Run ALL Scenarios** or **⚙️ Advanced Custom Simulation** to configure exact fleet speed, vacancy rate, and error rate.
-- The pipeline will automatically generate probe data, push to MinIO, ingest directly into ClickHouse via native `s3()`, and run all dbt transformations & tests.
-
-#### 🖥️ Web Control Center:
-![Control Center UI](docs/images/control_panel.png)
-
-#### ⚙️ Advanced Custom Simulation Modal:
-![Custom Simulation Modal](docs/images/simulation_modal.png)
-
----
-
-### 4. View Analytics Dashboards (Grafana)
-Open **[http://127.0.0.1:3000](http://127.0.0.1:3000)** (Login: `admin` / `grafana_secret`) ➡️ Dashboards ➡️ Bangkok Taxi:
-
-| Fleet Overview | Hotspot Demand Analysis | Trip Analytics |
-|:---:|:---:|:---:|
-| ![Fleet Overview](docs/images/grafana_overview.png) | ![Hotspots](docs/images/grafana_hotspots.png) | ![Trip Analytics](docs/images/grafana_trips.png) |
+### 3. Run a Simulation
+1. Open **[http://127.0.0.1:5000](http://127.0.0.1:5000)**.
+2. Select any traffic scenario (e.g. *Normal Weekday* or *Monsoon Rain*).
+3. Click **⚡ Run Pipeline** (or **⚙️ Advanced Custom Simulation**).
+4. Watch the pipeline generate data, upload to MinIO, ingest directly into ClickHouse via `s3()`, and execute dbt models.
+5. Open **[http://127.0.0.1:3000](http://127.0.0.1:3000)** to explore the updated dashboards.
 
 ---
 
@@ -128,44 +121,42 @@ Open **[http://127.0.0.1:3000](http://127.0.0.1:3000)** (Login: `admin` / `grafa
 
 ```
 bangkok-taxi-data-platform/
-├── docker-compose.yml              # Ultra-lean 4-container stack
-├── Makefile                        # Developer shortcuts
+├── docker-compose.yml              # Ultra-lean 4-container stack definition
+├── Makefile                        # Quick commands (lint, format, test)
 │
-├── src/                            # Python application code
-│   ├── config/settings.py          # Pydantic centralized config
+├── src/                            # Core application source
+│   ├── config/settings.py          # Pydantic centralized configuration
 │   ├── ingestion/                  # MinIO S3 uploader
-│   ├── loaders/                    # ClickHouse ELT loader via s3()
-│   └── ui/                         # FastAPI Control Panel
+│   ├── loaders/                    # ClickHouse ELT loader via native s3()
+│   └── ui/                         # FastAPI Control Panel & Simulation Engine
 │
-├── dbt_taxi/                       # dbt transformation project
-│   ├── models/staging/             # stg_gps_pings (clean + filter)
-│   ├── models/intermediate/        # Trip detection, sessionization
+├── dbt_taxi/                       # dbt dimensional modeling & testing project
+│   ├── models/staging/             # stg_gps_pings (cleaning, spatial filtering)
+│   ├── models/intermediate/        # Trip detection & ping sessionization
 │   ├── models/marts/               # fact_trips, fact_hourly_metrics
-│   └── macros/                     # haversine, geohash
+│   └── macros/                     # haversine distance, geohash functions
 │
-├── docs/images/                    # UI & Grafana Screenshots
-├── infrastructure/                 # Docker configs + Grafana provisioning
-├── scripts/                        # Mock data generator + DDL + Screenshot captures
-└── tests/                          # Integration tests
+├── docs/images/                    # UI, Simulation Modal & Grafana Screenshots
+├── infrastructure/                 # Dockerfile & Grafana dashboard provisioning
+├── scripts/                        # Mock data generator & screenshot captures
+└── tests/                          # Integration & data quality tests
 ```
 
 ---
 
-## ⚡ Key Design Decisions (The ELT Migration)
+## ⚡ Key Engineering & Design Decisions
 
 | Decision | Rationale |
-|----------|-----------|
-| **ELT over ETL** | By dropping Python-based validation (Pandera/Polars) and loading directly from S3 to ClickHouse via the `s3()` table function, ingestion bottlenecks were entirely eliminated. |
-| **ReplacingMergeTree** | The `raw_gps_pings` table uses `ReplacingMergeTree(_loaded_at)` to guarantee **idempotency**. Duplicate files loaded by mistake are deduplicated automatically at the database level. |
-| **No Airflow (Ultra-Lean)** | Airflow was completely purged to save massive RAM/CPU overhead. Orchestration is now handled entirely by the lightweight FastAPI Control Panel. |
-| **dbt for Data Quality** | Data validation (bounding boxes, speed limits, schema checks) is now done inside ClickHouse using dbt, utilizing database compute rather than python memory. |
-| **ClickHouse over PostgreSQL** | 100M+ rows with time-series queries — ClickHouse is 10-100x faster for OLAP. |
-| **Geohash for spatial analysis** | ~1.2km blocks (precision 6) — good balance of granularity vs cardinality. |
+|:---|:---|
+| **Direct S3-to-OLAP (ELT)** | Python memory bottlenecks are bypassed completely by streaming files straight from MinIO into ClickHouse via the native `s3()` table function. |
+| **ReplacingMergeTree** | Deduplication is handled automatically in the storage engine using `ReplacingMergeTree(_loaded_at)`, guaranteeing pipeline idempotency. |
+| **In-Database dbt Transforms** | Data cleaning, boundary filtering, trip sessionization, and schema validation run inside ClickHouse compute using dbt rather than external worker nodes. |
+| **Ultra-Lean Control Plane** | Replaces heavy orchestration frameworks (like Airflow) with a lightweight FastAPI control panel, reducing stack memory usage from >4 GB to <800 MB. |
+| **Geohash Spatial Indexing** | Uses Level 6 Geohashes (~1.2 km precision) for fast geospatial aggregation and OD (Origin-Destination) matrix analysis. |
 
 ---
 
-## 📄 License
+## 📄 License & Attribution
 
-This project is licensed under the MIT License.
-
-**Data attribution**: GPS probe data provided by [iTIC Foundation](https://www.iticfoundation.org/) under [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+- **Project License**: MIT License
+- **Data Schema Attribution**: Modeled after the probe dataset specifications provided by the [iTIC Foundation](https://www.iticfoundation.org/) under [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/).
