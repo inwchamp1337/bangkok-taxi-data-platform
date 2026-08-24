@@ -10,7 +10,6 @@
 
     <users>
         <default>
-            <password_sha256_hex replace="replace"><!-- will use CLICKHOUSE_PASSWORD env --></password_sha256_hex>
             <networks>
                 <ip>::/0</ip>
             </networks>
