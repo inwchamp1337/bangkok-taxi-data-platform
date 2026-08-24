@@ -228,7 +228,11 @@
               <div class="portal-info">
                 <div class="portal-name">Grafana Dashboards</div>
                 <div class="portal-url">127.0.0.1:3000</div>
-                <span class="portal-badge badge-auto" style="cursor: pointer;" onclick="event.preventDefault(); window.copyToClipboard('grafana_secret', 'Grafana Password')" title="Click to copy password">⚡ admin / grafana_secret 📋</span>
+                <span class="portal-badge badge-auto">⚡ 
+                  <span style="cursor: pointer;" onclick="event.preventDefault(); window.copyToClipboard('admin', 'Grafana Username')" title="Copy Username">admin</span> 
+                  / 
+                  <span style="cursor: pointer;" onclick="event.preventDefault(); window.copyToClipboard('grafana_secret', 'Grafana Password')" title="Copy Password">grafana_secret 📋</span>
+                </span>
               </div>
             </a>
 
@@ -237,7 +241,11 @@
               <div class="portal-info">
                 <div class="portal-name">MinIO Data Lake</div>
                 <div class="portal-url">127.0.0.1:9001</div>
-                <span class="portal-badge badge-cred" style="cursor: pointer;" onclick="event.preventDefault(); window.copyToClipboard('minio_secret_123', 'MinIO Password')" title="Click to copy password">minio_admin / minio_secret_123 📋</span>
+                <span class="portal-badge badge-cred">
+                  <span style="cursor: pointer;" onclick="event.preventDefault(); window.copyToClipboard('minio_admin', 'MinIO Username')" title="Copy Username">minio_admin</span> 
+                  / 
+                  <span style="cursor: pointer;" onclick="event.preventDefault(); window.copyToClipboard('minio_secret_123', 'MinIO Password')" title="Copy Password">minio_secret_123 📋</span>
+                </span>
               </div>
             </a>
             <a href="http://127.0.0.1:8123" target="_blank" class="portal-card">
@@ -245,7 +253,11 @@
               <div class="portal-info">
                 <div class="portal-name">ClickHouse OLAP</div>
                 <div class="portal-url">127.0.0.1:8123</div>
-                <span class="portal-badge badge-cred" style="cursor: pointer;" onclick="event.preventDefault(); window.copyToClipboard('clickhouse_secret', 'ClickHouse Password')" title="Click to copy password">default / clickhouse_secret 📋</span>
+                <span class="portal-badge badge-cred">
+                  <span style="cursor: pointer;" onclick="event.preventDefault(); window.copyToClipboard('default', 'ClickHouse Username')" title="Copy Username">default</span> 
+                  / 
+                  <span style="cursor: pointer;" onclick="event.preventDefault(); window.copyToClipboard('clickhouse_secret', 'ClickHouse Password')" title="Copy Password">clickhouse_secret 📋</span>
+                </span>
               </div>
             </a>
           </div>
