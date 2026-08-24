@@ -4,7 +4,7 @@
 
 document.addEventListener('DOMContentLoaded', () => {
   // ── Elements ──
-  const scenarioCards = document.querySelectorAll('.scenario-item');
+  const scenarioCards = document.querySelectorAll('.scenario-card, .scenario-item');
   const fleetSlider   = document.getElementById('num-taxis');
   const fleetVal      = document.getElementById('fleet-size-val');
   const daysSlider    = document.getElementById('num-days');
