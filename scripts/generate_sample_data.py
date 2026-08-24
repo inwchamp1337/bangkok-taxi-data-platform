@@ -26,20 +26,36 @@ logger = logging.getLogger(__name__)
 
 # Bangkok area landmarks for realistic starting points
 BANGKOK_HOTSPOTS = {
-    "siam": (13.7563, 100.5018),        # Siam Paragon / CentralWorld
-    "silom": (13.7311, 100.5231),       # Silom Financial District
-    "sukhumvit": (13.7366, 100.5636),   # Sukhumvit / Asok / Nana
+    "siam": (13.7460, 100.5348),        # Siam Paragon
+    "centralworld": (13.7466, 100.5392),# CentralWorld
+    "silom": (13.7285, 100.5342),       # Silom Financial District
+    "sathorn": (13.7230, 100.5285),     # Sathorn Square CBD
+    "asok": (13.7372, 100.5604),        # Sukhumvit / Asok / Terminal 21
     "thonglor": (13.7337, 100.5840),    # Thonglor / Ekkamai Nightlife
+    "ekkamai": (13.7190, 100.5855),     # Ekkamai Gateway
     "rca": (13.7516, 100.5786),         # RCA Entertainment District
-    "victory_mon": (13.7469, 100.5349), # Victory Monument Transit Hub
-    "chatuchak": (13.7999, 100.5530),   # Chatuchak Weekend Market & BTS
+    "victory_mon": (13.7649, 100.5383), # Victory Monument Transit Hub
+    "chatuchak": (13.8000, 100.5508),   # Chatuchak Weekend Market & BTS
     "suvarnabhumi": (13.6900, 100.7501),# Suvarnabhumi Airport (BKK)
     "don_mueang": (13.9130, 100.6068),  # Don Mueang Airport (DMK)
-    "sathorn": (13.7178, 100.5101),     # Sathorn CBD
-    "huai_khwang": (13.7649, 100.5685), # Huai Khwang / Ratchada
-    "bang_na": (13.6513, 100.4943),     # Bang Na Gateway
-    "ratchathewi": (13.7580, 100.4979), # Ratchathewi
-    "din_daeng": (13.7633, 100.5382),   # Din Daeng Expressways
+    "iconsiam": (13.7267, 100.5108),    # ICONSIAM / Charoen Nakhon
+    "grand_palace": (13.7500, 100.4914),# Grand Palace / Sanam Luang
+    "khaosan": (13.7588, 100.4975),     # Khaosan Road
+    "yaowarat": (13.7412, 100.5085),    # Yaowarat Chinatown
+    "bang_sue": (13.8040, 100.5401),    # Krung Thep Aphiwat Central Station
+    "ari": (13.7797, 100.5447),         # Ari / Phahonyothin
+    "mega_bangna": (13.6682, 100.6477), # Mega Bangna
+    "ladprao": (13.8164, 100.5606),     # Central Ladprao
+    "rama3": (13.6872, 100.5312),       # Rama 3 Riverside
+    "wongwian_yai": (13.7226, 100.4947),# Wongwian Yai
+    "pinklao": (13.7778, 100.4764),     # Central Pinklao
+    "huai_khwang": (13.7788, 100.5746), # Huai Khwang Market
+    "on_nut": (13.7056, 100.6015),      # On Nut / Sukhumvit 77
+    "saphan_taksin": (13.7190, 100.5135),# Saphan Taksin Pier
+    "rajamangala": (13.7554, 100.6222), # Rajamangala Stadium
+    "kasetsart": (13.8479, 100.5700),   # Kasetsart University
+    "bangkapi": (13.7656, 100.6425),    # The Mall Bangkapi
+    "seacon": (13.6942, 100.6475)       # Seacon Square Srinakarin
 }
 
 HOTSPOT_COORDS = list(BANGKOK_HOTSPOTS.values())

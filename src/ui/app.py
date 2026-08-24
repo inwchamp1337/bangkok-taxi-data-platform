@@ -414,21 +414,63 @@ async def run_dbt_background():
     except Exception as e:
         logger.error(f"Background dbt run failed: {e}")
 
+# Bangkok Landmark Hotspots for realistic trip generation
+BANGKOK_LANDMARKS = [
+    {"name": "Siam Paragon", "lat": 13.7460, "lon": 100.5348},
+    {"name": "CentralWorld", "lat": 13.7466, "lon": 100.5392},
+    {"name": "Silom / Sala Daeng", "lat": 13.7285, "lon": 100.5342},
+    {"name": "Sathorn Square", "lat": 13.7230, "lon": 100.5285},
+    {"name": "Asok / Terminal 21", "lat": 13.7372, "lon": 100.5604},
+    {"name": "Thong Lo (Sukhumvit 55)", "lat": 13.7337, "lon": 100.5840},
+    {"name": "Ekkamai Gateway", "lat": 13.7190, "lon": 100.5855},
+    {"name": "RCA Nightlife", "lat": 13.7516, "lon": 100.5786},
+    {"name": "Victory Monument", "lat": 13.7649, "lon": 100.5383},
+    {"name": "Chatuchak Weekend Market", "lat": 13.8000, "lon": 100.5508},
+    {"name": "Suvarnabhumi Airport (BKK)", "lat": 13.6900, "lon": 100.7501},
+    {"name": "Don Mueang Airport (DMK)", "lat": 13.9130, "lon": 100.6068},
+    {"name": "ICONSIAM", "lat": 13.7267, "lon": 100.5108},
+    {"name": "Grand Palace / Sanam Luang", "lat": 13.7500, "lon": 100.4914},
+    {"name": "Khaosan Road", "lat": 13.7588, "lon": 100.4975},
+    {"name": "Yaowarat Chinatown", "lat": 13.7412, "lon": 100.5085},
+    {"name": "Krung Thep Aphiwat Central Station", "lat": 13.8040, "lon": 100.5401},
+    {"name": "Ari / La Villa", "lat": 13.7797, "lon": 100.5447},
+    {"name": "Mega Bangna", "lat": 13.6682, "lon": 100.6477},
+    {"name": "Central Ladprao", "lat": 13.8164, "lon": 100.5606},
+    {"name": "Rama 3 Riverside", "lat": 13.6872, "lon": 100.5312},
+    {"name": "Wongwian Yai", "lat": 13.7226, "lon": 100.4947},
+    {"name": "Central Pinklao", "lat": 13.7778, "lon": 100.4764},
+    {"name": "Huai Khwang Market", "lat": 13.7788, "lon": 100.5746},
+    {"name": "On Nut / Sukhumvit 77", "lat": 13.7056, "lon": 100.6015},
+    {"name": "Saphan Taksin Pier", "lat": 13.7190, "lon": 100.5135},
+    {"name": "Rajamangala Stadium", "lat": 13.7554, "lon": 100.6222},
+    {"name": "Kasetsart University", "lat": 13.8479, "lon": 100.5700},
+    {"name": "The Mall Bangkapi", "lat": 13.7656, "lon": 100.6425},
+    {"name": "Seacon Square Srinakarin", "lat": 13.6942, "lon": 100.6475}
+]
+
 async def live_stream_worker(interval: int):
     global LIVE_FLEET
     client = get_clickhouse_client()
-    base_lat, base_lon = 13.7563, 100.5018
     
-    # Initialize 50 live taxis if empty
+    # Initialize 60 live taxis distributed across Bangkok landmarks
     if not LIVE_FLEET:
-        for i in range(50):
+        for i in range(60):
+            origin = random.choice(BANGKOK_LANDMARKS)
+            dest = random.choice([l for l in BANGKOK_LANDMARKS if l["name"] != origin["name"]])
+            lat = origin["lat"] + random.uniform(-0.003, 0.003)
+            lon = origin["lon"] + random.uniform(-0.003, 0.003)
+            
             LIVE_FLEET.append({
-                "id": f"live_taxi_{i:03d}_{random.randint(100,999)}",
-                "lat": base_lat + random.uniform(-0.08, 0.08),
-                "lon": base_lon + random.uniform(-0.08, 0.08),
+                "id": f"bkk_taxi_{i:03d}_{random.randint(100,999)}",
+                "origin_name": origin["name"],
+                "dest_name": dest["name"],
+                "lat": lat,
+                "lon": lon,
+                "dest_lat": dest["lat"] + random.uniform(-0.003, 0.003),
+                "dest_lon": dest["lon"] + random.uniform(-0.003, 0.003),
                 "route": [],
                 "route_idx": 0,
-                "speed": random.randint(10, 60),
+                "speed": random.randint(20, 60),
                 "vacant": random.choice([0, 1])
             })
             
@@ -439,34 +481,41 @@ async def live_stream_worker(interval: int):
             rows_to_insert = []
             
             for v in LIVE_FLEET:
-                # If no route or finished route, fetch a new one
+                # If no route or finished route, fetch a new route to a random Bangkok landmark
                 if not v.get("route") or v["route_idx"] >= len(v["route"]) - 1:
-                    dest_lat = base_lat + random.uniform(-0.1, 0.1)
-                    dest_lon = base_lon + random.uniform(-0.1, 0.1)
-                    coords = await fetch_osrm_route(v["lon"], v["lat"], dest_lon, dest_lat)
+                    new_dest = random.choice([l for l in BANGKOK_LANDMARKS if l["name"] != v.get("dest_name")])
+                    v["origin_name"] = v.get("dest_name", "Bangkok")
+                    v["dest_name"] = new_dest["name"]
+                    v["dest_lat"] = new_dest["lat"] + random.uniform(-0.003, 0.003)
+                    v["dest_lon"] = new_dest["lon"] + random.uniform(-0.003, 0.003)
+                    
+                    coords = await fetch_osrm_route(v["lon"], v["lat"], v["dest_lon"], v["dest_lat"])
                     if coords:
                         v["route"] = coords
                         v["route_idx"] = 0
+                        v["vacant"] = random.choice([0, 1])
+                        v["speed"] = random.randint(25, 75)
                     else:
-                        # Fallback random walk
-                        v["lat"] += random.uniform(-0.001, 0.001)
-                        v["lon"] += random.uniform(-0.001, 0.001)
+                        # Fallback small movement towards destination
+                        d_lat = (v["dest_lat"] - v["lat"]) * 0.05
+                        d_lon = (v["dest_lon"] - v["lon"]) * 0.05
+                        v["lat"] += d_lat + random.uniform(-0.0005, 0.0005)
+                        v["lon"] += d_lon + random.uniform(-0.0005, 0.0005)
                 
                 # Advance along route
                 if v.get("route") and v["route_idx"] < len(v["route"]) - 1:
-                    # Advance points based on speed
-                    step = max(1, v["speed"] // 15)
+                    # Advance points based on speed and interval
+                    step = max(1, int(v["speed"] * (interval / 5.0) / 10))
                     v["route_idx"] = min(len(v["route"]) - 1, v["route_idx"] + step)
                     next_point = v["route"][v["route_idx"]]
                     v["lon"], v["lat"] = next_point[0], next_point[1]
                 
-                # Keep within bounds
+                # Keep within Bangkok metropolitan bounding box
                 v["lat"] = max(13.4, min(14.3, v["lat"]))
                 v["lon"] = max(100.2, min(101.0, v["lon"]))
 
-                if random.random() < 0.05:
-                    v["vacant"] = 1 - v["vacant"]
-                    v["speed"] = random.randint(10, 80)
+                # Realistic traffic speed variations
+                v["speed"] = max(5, min(90, v["speed"] + random.randint(-5, 5)))
                 
                 rows_to_insert.append([
                     v["id"], 1, v["lat"], v["lon"], now_str, v["speed"], v["vacant"], 1, now_str, "live_stream"
@@ -477,11 +526,11 @@ async def live_stream_worker(interval: int):
                 rows_to_insert, 
                 column_names=['vehicle_id', 'gps_valid', 'lat', 'lon', 'timestamp', 'speed', 'passenger_lamp', 'engine_acc', '_loaded_at', '_source_file']
             )
-            logger.info(f"Live stream injected {len(rows_to_insert)} rows (interval={interval}s)")
+            logger.info(f"Live stream injected {len(rows_to_insert)} rows across Bangkok landmarks (interval={interval}s)")
             
-            # Automatically trigger dbt run every ~15 seconds to update Grafana
+            # Automatically trigger dbt run every ~20 seconds to update Grafana
             loop_count += interval
-            if loop_count >= 15:
+            if loop_count >= 20:
                 loop_count = 0
                 logger.info("Triggering background dbt run to update Grafana...")
                 asyncio.create_task(run_dbt_background())
