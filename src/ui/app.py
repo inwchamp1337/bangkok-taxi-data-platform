@@ -382,6 +382,24 @@ async def fetch_osrm_route(lon1, lat1, lon2, lat2):
         logger.warning(f"OSRM Error: {e}")
     return None
 
+import time
+
+async def run_dbt_background():
+    """Run dbt in the background so Live Stream data appears in Grafana."""
+    dbt_dir = Path("/opt/dbt_taxi")
+    if not dbt_dir.exists():
+        dbt_dir = Path("dbt_taxi")
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "dbt", "run",
+            cwd=str(dbt_dir),
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        await proc.communicate()
+    except Exception as e:
+        logger.error(f"Background dbt run failed: {e}")
+
 async def live_stream_worker(interval: int):
     global LIVE_FLEET
     client = get_clickhouse_client()
@@ -400,6 +418,7 @@ async def live_stream_worker(interval: int):
                 "vacant": random.choice([0, 1])
             })
             
+    loop_count = 0
     while True:
         try:
             now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -445,6 +464,14 @@ async def live_stream_worker(interval: int):
                 column_names=['vehicle_id', 'gps_valid', 'lat', 'lon', 'timestamp', 'speed', 'passenger_lamp', 'engine_acc', '_loaded_at', '_source_file']
             )
             logger.info(f"Live stream injected {len(rows_to_insert)} rows (interval={interval}s)")
+            
+            # Automatically trigger dbt run every ~15 seconds to update Grafana
+            loop_count += interval
+            if loop_count >= 15:
+                loop_count = 0
+                logger.info("Triggering background dbt run to update Grafana...")
+                asyncio.create_task(run_dbt_background())
+                
         except asyncio.CancelledError:
             break
         except Exception as e:
