@@ -322,7 +322,45 @@ async def run_all_scenarios_pipeline(req: PipelineRunRequest) -> dict[str, Any]:
         "dbt_test": dbt_test_res,
     }
 
-
+@app.get("/api/fleet/locations")
+async def get_fleet_locations() -> dict[str, Any]:
+    """Fetch the latest known location of each taxi for live mapping."""
+    try:
+        client = get_clickhouse_client()
+        query = """
+        SELECT 
+            vehicle_id, 
+            argMax(lat, timestamp) as lat, 
+            argMax(lon, timestamp) as lon, 
+            argMax(speed, timestamp) as speed, 
+            argMax(passenger_lamp, timestamp) as passenger_lamp,
+            max(timestamp) as last_seen
+        FROM taxi.raw_gps_pings
+        GROUP BY vehicle_id
+        ORDER BY last_seen DESC
+        LIMIT 500
+        """
+        res = client.query(query)
+        
+        vehicles = []
+        for row in res.result_rows:
+            vehicles.append({
+                "vehicle_id": row[0],
+                "lat": row[1],
+                "lon": row[2],
+                "speed": row[3],
+                "passenger_lamp": row[4],
+                "last_seen": row[5].isoformat() if hasattr(row[5], "isoformat") else str(row[5])
+            })
+            
+        return {
+            "status": "success",
+            "count": len(vehicles),
+            "data": vehicles
+        }
+    except Exception as exc:
+        logger.error("Failed to fetch fleet locations: %s", exc)
+        return {"status": "error", "message": str(exc), "count": 0, "data": []}
 @app.post("/api/reset")
 async def reset_database() -> dict[str, Any]:
     """Truncate ClickHouse tables and clear sample directory."""

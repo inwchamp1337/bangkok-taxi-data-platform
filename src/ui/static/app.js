@@ -183,7 +183,54 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // --- Live Fleet Tracking Map Setup ---
+  let fleetMap = L.map('fleet-map').setView([13.7563, 100.5018], 11);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    subdomains: 'abcd',
+    maxZoom: 20
+  }).addTo(fleetMap);
+  let markersLayer = L.layerGroup().addTo(fleetMap);
+  const mapStatus = document.getElementById('map-status');
+
+  async function fetchFleetLocations() {
+    try {
+      const res = await fetch('/api/fleet/locations');
+      if (!res.ok) return;
+      const data = await res.json();
+      
+      markersLayer.clearLayers();
+      if (data.data.length === 0) {
+        mapStatus.textContent = 'No active fleet data';
+        mapStatus.className = 'badge-pill';
+        return;
+      }
+
+      mapStatus.textContent = `Live: ${data.data.length} vehicles`;
+      mapStatus.className = 'badge-pill status-online';
+
+      data.data.forEach(v => {
+        const isVacant = v.passenger_lamp === 1;
+        const color = isVacant ? '#10b981' : '#f59e0b';
+        const circle = L.circleMarker([v.lat, v.lon], {
+          radius: 3,
+          fillColor: color,
+          color: color,
+          weight: 1,
+          opacity: 0.8,
+          fillOpacity: 0.8
+        });
+        circle.bindPopup(`<b>Taxi ID:</b> ${v.vehicle_id.substring(0,8)}...<br><b>Speed:</b> ${v.speed} km/h<br><b>Status:</b> ${isVacant ? 'Vacant (Green)' : 'Occupied (Orange)'}`);
+        markersLayer.addLayer(circle);
+      });
+    } catch (e) {
+      console.error('Failed to update map', e);
+    }
+  }
+
   // Initial Poll & Interval
   fetchStatus();
+  fetchFleetLocations();
   setInterval(fetchStatus, 3000);
+  setInterval(fetchFleetLocations, 5000);
 });
