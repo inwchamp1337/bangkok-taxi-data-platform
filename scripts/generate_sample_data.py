@@ -212,7 +212,7 @@ def generate_sample_data(
     for day_offset in range(num_days):
         current_date = start_date + timedelta(days=day_offset)
         date_str = current_date.strftime("%Y-%m-%d")
-        filepath = output_dir / f"probe_{date_str}.csv"
+        filepath = output_dir / f"probe_{scenario}_{date_str}.csv"
 
         all_rows = []
         for vehicle_id in vehicles:

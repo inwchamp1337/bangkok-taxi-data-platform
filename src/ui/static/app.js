@@ -154,7 +154,14 @@ document.addEventListener('DOMContentLoaded', () => {
   btnRunAll.addEventListener('click', async () => {
     const payload = getPayload();
     appendLog(`[pipeline] Launching Full Pipeline (${payload.scenario.toUpperCase()}, ${payload.num_taxis} taxis, ${payload.num_days} days)`);
-    await executeAction(btnRunAll, 'Full Pipeline', '/api/pipeline/run-all', payload);
+    await executeAction(btnRunAll, 'Selected Pipeline', '/api/pipeline/run-all', payload);
+  });
+
+  const btnRunAllScenarios = document.getElementById('btn-run-all-scenarios');
+  btnRunAllScenarios.addEventListener('click', async () => {
+    const payload = getPayload();
+    appendLog(`[pipeline] Launching Full Pipeline for ALL 5 SCENARIOS (${payload.num_taxis} taxis, ${payload.num_days} days)`);
+    await executeAction(btnRunAllScenarios, 'All Scenarios Pipeline', '/api/pipeline/run-all-scenarios', payload);
   });
 
   btnGenerate.addEventListener('click', async () => {

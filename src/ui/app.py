@@ -264,6 +264,49 @@ async def run_full_mock_pipeline(req: PipelineRunRequest) -> dict[str, Any]:
     }
 
 
+@app.post("/api/pipeline/run-all-scenarios")
+async def run_all_scenarios_pipeline(req: PipelineRunRequest) -> dict[str, Any]:
+    """Simulate EVERY scenario sequentially."""
+    scenarios = ["normal", "rain", "airport", "nightlife", "chaos"]
+    
+    total_generated = 0
+    total_loaded = 0
+    
+    for scn in scenarios:
+        logger.info("Running pipeline for scenario: %s", scn)
+        
+        # Override scenario in request
+        scenario_req = GenerateRequest(
+            num_taxis=req.num_taxis,
+            num_days=req.num_days,
+            scenario=scn,
+            chaos_rate=0.05 if scn == "chaos" else 0.0,
+            start_date=req.start_date
+        )
+        
+        gen_res = await generate_mock_data(scenario_req)
+        total_generated += gen_res["total_rows"]
+        
+    # Load everything after generating
+    load_res = await load_to_clickhouse()
+    total_loaded += load_res["total_loaded"]
+    
+    # 3. dbt run
+    dbt_run_res = await trigger_dbt_run()
+
+    # 4. dbt test
+    dbt_test_res = await trigger_dbt_test()
+
+    return {
+        "status": "success" if dbt_test_res["status"] == "success" else "partial_success",
+        "scenarios_run": scenarios,
+        "total_generated": total_generated,
+        "total_loaded": total_loaded,
+        "dbt_run": dbt_run_res,
+        "dbt_test": dbt_test_res,
+    }
+
+
 @app.post("/api/reset")
 async def reset_database() -> dict[str, Any]:
     """Truncate ClickHouse tables and clear sample directory."""
