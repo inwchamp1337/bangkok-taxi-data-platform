@@ -1,0 +1,18 @@
+# ClickHouse datasource for Grafana — auto-provisioned on startup
+apiVersion: 1
+
+datasources:
+  - name: ClickHouse
+    type: grafana-clickhouse-datasource
+    access: proxy
+    isDefault: true
+    editable: true
+    jsonData:
+      host: clickhouse
+      port: 9000
+      protocol: native
+      username: default
+      defaultDatabase: taxi
+      tlsSkipVerify: true
+    secureJsonData:
+      password: clickhouse_secret

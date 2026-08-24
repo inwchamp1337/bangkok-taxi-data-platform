@@ -1,0 +1,139 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "title": "🚕 Active Taxis Over Time",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "fillOpacity": 20, "lineWidth": 2, "pointSize": 3 }
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT hour_start, total_active_taxis FROM taxi.fact_hourly_metrics ORDER BY hour_start",
+          "format": 1
+        }
+      ]
+    },
+    {
+      "title": "🟢 Occupied vs 🔴 Vacant Taxis",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "fillOpacity": 40, "lineWidth": 1, "stacking": { "mode": "normal" } }
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT hour_start, total_occupied_taxis AS occupied, total_vacant_taxis AS vacant FROM taxi.fact_hourly_metrics ORDER BY hour_start",
+          "format": 1
+        }
+      ]
+    },
+    {
+      "title": "⚡ Average Speed (km/h)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "fixedColor": "orange", "mode": "fixed" },
+          "custom": { "fillOpacity": 10, "lineWidth": 2 },
+          "unit": "velocitykmh"
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT hour_start, avg_speed_kmh FROM taxi.fact_hourly_metrics ORDER BY hour_start",
+          "format": 1
+        }
+      ]
+    },
+    {
+      "title": "🔄 Empty Taxi Ratio",
+      "type": "gauge",
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 8 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.4 },
+              { "color": "red", "value": 0.7 }
+            ]
+          },
+          "max": 1, "min": 0, "unit": "percentunit"
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT avg(empty_taxi_ratio) AS ratio FROM taxi.fact_hourly_metrics WHERE hour_start >= now() - INTERVAL 24 HOUR",
+          "format": 1
+        }
+      ]
+    },
+    {
+      "title": "📊 Fleet Statistics",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 8 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" } },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT uniqExact(vehicle_id) AS total_taxis, count() AS total_pings, sum(total_pings) AS total_records FROM taxi.fact_hourly_metrics",
+          "format": 1
+        }
+      ]
+    },
+    {
+      "title": "📈 Hourly Trip Count Pattern",
+      "type": "barchart",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "fixedColor": "blue", "mode": "fixed" },
+          "custom": { "fillOpacity": 80 }
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT hour_of_day, round(avg(total_active_taxis)) AS avg_active_taxis FROM taxi.fact_hourly_metrics GROUP BY hour_of_day ORDER BY hour_of_day",
+          "format": 1
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["taxi", "overview"],
+  "templating": {
+    "list": [
+      {
+        "current": {},
+        "hide": 2,
+        "name": "DS_CLICKHOUSE",
+        "type": "datasource",
+        "query": "grafana-clickhouse-datasource"
+      }
+    ]
+  },
+  "time": { "from": "now-7d", "to": "now" },
+  "title": "🚕 Bangkok Taxi — Fleet Overview",
+  "uid": "taxi-overview"
+}

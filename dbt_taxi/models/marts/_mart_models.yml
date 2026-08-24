@@ -1,0 +1,60 @@
+version: 2
+
+models:
+  - name: fact_trips
+    description: >
+      Completed taxi trips aggregated from trip segments.
+      Each row represents one complete trip with pickup/dropoff
+      locations, duration, distance, and average speed.
+    columns:
+      - name: trip_id
+        description: "Unique trip identifier"
+        tests:
+          - not_null
+          - unique
+      - name: vehicle_id
+        tests:
+          - not_null
+      - name: pickup_at
+        tests:
+          - not_null
+      - name: dropoff_at
+        tests:
+          - not_null
+      - name: duration_minutes
+        description: "Trip duration in minutes"
+      - name: distance_km
+        description: "Total trip distance (Haversine sum) in km"
+
+  - name: fact_hourly_metrics
+    description: >
+      Pre-aggregated hourly metrics for the entire Bangkok taxi fleet.
+      Designed for Grafana dashboard consumption with fast query performance.
+    columns:
+      - name: hour_start
+        description: "Start of the hour window"
+        tests:
+          - not_null
+          - unique
+      - name: total_active_taxis
+        description: "Distinct taxis with at least one ping this hour"
+      - name: empty_taxi_ratio
+        description: "Ratio of vacant pings to total pings"
+
+  - name: dim_taxi
+    description: >
+      Taxi dimension table with per-vehicle statistics.
+    columns:
+      - name: vehicle_id
+        tests:
+          - not_null
+          - unique
+
+  - name: dim_time
+    description: >
+      Time dimension table covering all dates in the dataset.
+    columns:
+      - name: date_key
+        tests:
+          - not_null
+          - unique

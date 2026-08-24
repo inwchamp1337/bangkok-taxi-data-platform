@@ -1,0 +1,30 @@
+name: "taxi"
+version: "1.0.0"
+
+config-version: 2
+
+profile: "taxi"
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+vars:
+  # Bangkok metropolitan area bounding box
+  bkk_lat_min: 13.4
+  bkk_lat_max: 14.3
+  bkk_lon_min: 100.2
+  bkk_lon_max: 101.0
+
+  # Session gap threshold (minutes)
+  session_gap_minutes: 10
+
+  # Geohash precision (6 = ~1.2km blocks)
+  geohash_precision: 6

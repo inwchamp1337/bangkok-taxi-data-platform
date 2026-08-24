@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Environment
+.env
+
+# Data files (large — never commit)
+data/
+*.csv
+*.tar.bz2
+*.parquet
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker volumes
+volumes/
+
+# Airflow
+airflow/logs/
+airflow/plugins/__pycache__/
+
+# dbt
+dbt_taxi/target/
+dbt_taxi/dbt_packages/
+dbt_taxi/logs/
+
+# Test
+.pytest_cache/
+.coverage
+htmlcov/

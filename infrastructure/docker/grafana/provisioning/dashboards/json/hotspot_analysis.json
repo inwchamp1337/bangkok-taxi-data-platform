@@ -1,0 +1,92 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "title": "📍 Top 20 Pickup Locations (by Geohash)",
+      "type": "barchart",
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "fixedColor": "green", "mode": "fixed" },
+          "custom": { "fillOpacity": 80 }
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT pickup_geohash, count() AS pickups FROM taxi.fact_trips GROUP BY pickup_geohash ORDER BY pickups DESC LIMIT 20",
+          "format": 1
+        }
+      ]
+    },
+    {
+      "title": "📍 Top 20 Dropoff Locations (by Geohash)",
+      "type": "barchart",
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "fixedColor": "red", "mode": "fixed" },
+          "custom": { "fillOpacity": 80 }
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT dropoff_geohash, count() AS dropoffs FROM taxi.fact_trips GROUP BY dropoff_geohash ORDER BY dropoffs DESC LIMIT 20",
+          "format": 1
+        }
+      ]
+    },
+    {
+      "title": "🕐 Peak Hours — Pickup Distribution",
+      "type": "barchart",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 10 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "fixedColor": "purple", "mode": "fixed" },
+          "custom": { "fillOpacity": 70 }
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT toHour(pickup_at) AS hour, count() AS trips FROM taxi.fact_trips GROUP BY hour ORDER BY hour",
+          "format": 1
+        }
+      ]
+    },
+    {
+      "title": "🔀 Top OD Pairs (Origin → Destination)",
+      "type": "table",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 10 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
+      "targets": [
+        {
+          "rawSql": "SELECT pickup_geohash AS origin, dropoff_geohash AS destination, count() AS trips, round(avg(duration_minutes), 1) AS avg_duration_min, round(avg(distance_km), 1) AS avg_distance_km FROM taxi.fact_trips GROUP BY origin, destination ORDER BY trips DESC LIMIT 20",
+          "format": 1
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["taxi", "hotspot"],
+  "templating": {
+    "list": [
+      {
+        "current": {},
+        "hide": 2,
+        "name": "DS_CLICKHOUSE",
+        "type": "datasource",
+        "query": "grafana-clickhouse-datasource"
+      }
+    ]
+  },
+  "time": { "from": "now-30d", "to": "now" },
+  "title": "📍 Bangkok Taxi — Hotspot Analysis",
+  "uid": "taxi-hotspot"
+}

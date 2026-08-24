@@ -1,0 +1,113 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "title": "⏱️ Trip Duration Distribution",
+      "type": "histogram",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "fixedColor": "blue", "mode": "fixed" },
+          "custom": { "fillOpacity": 80 }
+        }
+      },
+      "options": { "bucketCount": 30 },
+      "targets": [
+        {
+          "rawSql": "SELECT duration_minutes FROM taxi.fact_trips WHERE duration_minutes BETWEEN 1 AND 120",
+          "format": 1
+        }
+      ]
+    },
+    {
+      "title": "📏 Trip Distance Distribution",
+      "type": "histogram",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "fixedColor": "orange", "mode": "fixed" },
+          "custom": { "fillOpacity": 80 }
+        }
+      },
+      "options": { "bucketCount": 30 },
+      "targets": [
+        {
+          "rawSql": "SELECT distance_km FROM taxi.fact_trips WHERE distance_km BETWEEN 0.1 AND 50",
+          "format": 1
+        }
+      ]
+    },
+    {
+      "title": "📅 Trips Per Day",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "fixedColor": "green", "mode": "fixed" },
+          "custom": { "fillOpacity": 30, "lineWidth": 2 }
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT trip_date, count() AS trips FROM taxi.fact_trips GROUP BY trip_date ORDER BY trip_date",
+          "format": 1
+        }
+      ]
+    },
+    {
+      "title": "⚡ Average Speed by Hour of Day",
+      "type": "barchart",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "fixedColor": "yellow", "mode": "fixed" },
+          "custom": { "fillOpacity": 70 },
+          "unit": "velocitykmh"
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT toHour(pickup_at) AS hour, round(avg(avg_speed_kmh), 1) AS speed FROM taxi.fact_trips GROUP BY hour ORDER BY hour",
+          "format": 1
+        }
+      ]
+    },
+    {
+      "title": "📊 Trip Summary Statistics",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
+      "targets": [
+        {
+          "rawSql": "SELECT count() AS total_trips, round(avg(duration_minutes), 1) AS avg_duration_min, round(avg(distance_km), 1) AS avg_distance_km, round(avg(avg_speed_kmh), 1) AS avg_speed_kmh, uniqExact(vehicle_id) AS unique_taxis FROM taxi.fact_trips",
+          "format": 1
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["taxi", "trips"],
+  "templating": {
+    "list": [
+      {
+        "current": {},
+        "hide": 2,
+        "name": "DS_CLICKHOUSE",
+        "type": "datasource",
+        "query": "grafana-clickhouse-datasource"
+      }
+    ]
+  },
+  "time": { "from": "now-30d", "to": "now" },
+  "title": "🚖 Bangkok Taxi — Trip Analytics",
+  "uid": "taxi-trips"
+}

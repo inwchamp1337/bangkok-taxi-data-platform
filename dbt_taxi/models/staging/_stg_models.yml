@@ -1,0 +1,63 @@
+version: 2
+
+sources:
+  - name: raw
+    description: "Raw GPS probe data loaded from iTIC CSV files"
+    database: taxi
+    schema: taxi
+    tables:
+      - name: raw_gps_pings
+        description: "Raw GPS ping records from Bangkok taxis"
+        columns:
+          - name: vehicle_id
+            description: "Hashed unique vehicle identifier"
+          - name: gps_valid
+            description: "GPS fix quality (1 = valid)"
+          - name: lat
+            description: "Latitude in decimal degrees (WGS84)"
+          - name: lon
+            description: "Longitude in decimal degrees (WGS84)"
+          - name: timestamp
+            description: "GPS timestamp in Bangkok time (UTC+7)"
+          - name: speed
+            description: "Speed in km/h"
+          - name: passenger_lamp
+            description: "Vacancy light: 1 = vacant, 0 = occupied"
+          - name: engine_acc
+            description: "Engine switch: 1 = running, 0 = off"
+          - name: _loaded_at
+            description: "ETL load timestamp"
+          - name: _source_file
+            description: "Source CSV filename for lineage"
+
+models:
+  - name: stg_gps_pings
+    description: >
+      Cleaned and filtered GPS pings. Filters out invalid GPS fixes
+      and coordinates outside Bangkok metropolitan area. Adds computed
+      time dimensions and vacancy status.
+    columns:
+      - name: vehicle_id
+        description: "Vehicle identifier"
+        tests:
+          - not_null
+      - name: lat
+        description: "Latitude (filtered to Bangkok metro)"
+      - name: lon
+        description: "Longitude (filtered to Bangkok metro)"
+      - name: ping_at
+        description: "Renamed timestamp column"
+        tests:
+          - not_null
+      - name: speed_kmh
+        description: "Speed in km/h"
+      - name: is_vacant
+        description: "True if taxi has vacancy light ON (no passenger)"
+      - name: is_engine_on
+        description: "True if engine is running"
+      - name: hour_of_day
+        description: "Hour (0-23) extracted from ping_at"
+      - name: day_of_week
+        description: "Day of week (1=Monday, 7=Sunday)"
+      - name: ping_date
+        description: "Date part of ping_at"
