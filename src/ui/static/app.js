@@ -39,7 +39,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Scenario Card Selection
   scenarioCards.forEach((card) => {
-    card.addEventListener('click', () => {
+    card.addEventListener('click', (e) => {
+      // Prevent double firing when the internal label clicks the radio input
+      if (e.target.tagName.toLowerCase() === 'input') return;
+      
       scenarioCards.forEach((c) => c.classList.remove('selected'));
       card.classList.add('selected');
       const radio = card.querySelector('input[type="radio"]');
@@ -129,6 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.disabled = true;
     btn.innerHTML = `<span class="pulse-dot"></span> <span>Running ${actionName}...</span>`;
     appendLog(`[action] Starting ${actionName}...`);
+    const startTime = performance.now();
 
     try {
       const options = {
@@ -146,7 +150,8 @@ document.addEventListener('DOMContentLoaded', () => {
         throw new Error(data.detail || `Action failed with status ${res.status}`);
       }
 
-      appendLog(`[success] ${actionName} finished: ${data.message || JSON.stringify(data.status || 'OK')}`);
+      const duration = ((performance.now() - startTime) / 1000).toFixed(2);
+      appendLog(`[success] ${actionName} finished in ${duration}s: ${data.message || JSON.stringify(data.status || 'OK')}`);
       showToast(`${actionName} completed successfully!`, 'success');
       await fetchStatus();
       return data;
