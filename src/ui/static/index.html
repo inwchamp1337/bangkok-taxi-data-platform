@@ -325,7 +325,7 @@
           <div class="form-row">
             <!-- Speed Bias -->
             <div class="form-group flex-1">
-              <label for="custom-speed-bias" class="form-label">Speed / Traffic Pattern</label>
+              <label for="custom-speed-bias" class="form-label">Speed / Traffic Preset</label>
               <select id="custom-speed-bias" class="custom-select">
                 <option value="normal">🚗 Normal Traffic (Avg 30-45 km/h)</option>
                 <option value="congested">🛑 Heavy Congestion / Rain (Avg 5-20 km/h)</option>
@@ -335,7 +335,7 @@
 
             <!-- Vacancy / Demand Bias -->
             <div class="form-group flex-1">
-              <label for="custom-vacancy-bias" class="form-label">Passenger Demand (Empty Taxi Ratio)</label>
+              <label for="custom-vacancy-bias" class="form-label">Passenger Demand Preset</label>
               <select id="custom-vacancy-bias" class="custom-select">
                 <option value="balanced">⚖️ Balanced (~45% Empty Ratio)</option>
                 <option value="high_demand">🔥 High Demand / Surge (~15% Empty Ratio)</option>
@@ -345,7 +345,7 @@
           </div>
 
           <!-- Scenario Mix Presets -->
-          <div class="form-group" style="margin-top: 10px;">
+          <div class="form-group" style="margin-top: 6px;">
             <label class="form-label">Traffic Scenario Profile</label>
             <div class="chip-options">
               <label class="chip-radio"><input type="radio" name="custom_scenario" value="normal" checked><span>🚦 Balanced City</span></label>
@@ -357,9 +357,43 @@
           </div>
         </div>
 
-        <!-- 4. Overwrite vs Append Strategy -->
+        <!-- 4. Exact Custom Numerical Values -->
         <div class="form-section">
-          <label class="section-label">4. Data Retention Strategy (การจัดการข้อมูลเดิม)</label>
+          <label class="section-label">4. Custom Numerical Targets (กำหนดตัวเลขเป้าหมายเอง - ไม่บังคับ)</label>
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="custom-target-speed" class="form-label">
+                Target Speed (km/h)
+                <small style="color: var(--text-muted);">Optional</small>
+              </label>
+              <input type="number" id="custom-target-speed" min="5" max="150" step="1" placeholder="e.g. 38 (Auto if empty)" class="custom-input">
+            </div>
+
+            <div class="form-group flex-1">
+              <label for="custom-target-vacancy" class="form-label">
+                Target Vacant Ratio (%)
+                <small style="color: var(--text-muted);">Optional</small>
+              </label>
+              <input type="number" id="custom-target-vacancy" min="0" max="100" step="1" placeholder="e.g. 35% (Auto if empty)" class="custom-input">
+            </div>
+          </div>
+
+          <div class="form-row" style="margin-top: 4px;">
+            <div class="form-group flex-1">
+              <label for="custom-ping-interval" class="form-label">GPS Ping Step (sec)</label>
+              <input type="number" id="custom-ping-interval" min="5" max="300" step="5" value="60" class="custom-input">
+            </div>
+
+            <div class="form-group flex-1">
+              <label for="custom-chaos-rate" class="form-label">Chaos Error Rate (%)</label>
+              <input type="number" id="custom-chaos-rate" min="0" max="50" step="1" value="0" class="custom-input">
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. Overwrite vs Append Strategy -->
+        <div class="form-section">
+          <label class="section-label">5. Data Retention Strategy (การจัดการข้อมูลเดิม)</label>
           <div class="retention-picker">
             <label class="retention-card selected">
               <input type="radio" name="overwrite_mode" value="true" checked>

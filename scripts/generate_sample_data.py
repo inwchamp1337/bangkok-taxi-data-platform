@@ -81,9 +81,12 @@ def generate_taxi_day(
     chaos_rate: float = 0.05,
     speed_bias: str = "normal",
     vacancy_bias: str = "balanced",
+    target_speed: float | None = None,
+    target_vacancy_pct: float | None = None,
+    ping_interval_secs: int = 60,
 ) -> list[list]:
     """
-    Generate a full day of GPS pings for one taxi under a specific scenario and modifiers.
+    Generate a full day of GPS pings for one taxi under a specific scenario and exact numerical targets.
     """
     rows = []
     current_time = date.replace(hour=start_hour, minute=random.randint(0, 30), second=random.randint(0, 59))
@@ -115,9 +118,12 @@ def generate_taxi_day(
         # GPS fix validity
         gps_valid = 1 if random.random() < 0.99 else 0
 
-        # Calculate speed by scenario & speed bias
+        # Calculate speed
         if not engine_on:
             speed = 0
+        elif target_speed is not None and target_speed > 0:
+            # Custom exact speed target with natural +- 25% variation
+            speed = max(0, int(random.gauss(target_speed, target_speed * 0.25)))
         elif scenario == "rain" or speed_bias == "congested":
             # Gridlock: 5 to 25 km/h max
             speed = 0 if random.random() < 0.4 else random.randint(4, 22)
@@ -165,8 +171,9 @@ def generate_taxi_day(
         ])
 
         # Step time
-        step_secs = random.randint(50, 70) if engine_on else random.randint(160, 200)
-        current_time += timedelta(seconds=step_secs)
+        jitter_step = int(ping_interval_secs * random.uniform(0.85, 1.15))
+        step_secs = jitter_step if engine_on else jitter_step * 3
+        current_time += timedelta(seconds=max(5, step_secs))
 
         # Movement simulation
         if speed > 0:
@@ -176,8 +183,15 @@ def generate_taxi_day(
             lat = max(13.4, min(14.3, lat))
             lon = max(100.2, min(101.0, lon))
 
-        # State transitions (pickup / dropoff) with vacancy bias
-        if vacancy_bias == "high_demand":
+        # State transitions (pickup / dropoff) with exact or bias targets
+        if target_vacancy_pct is not None:
+            # Desired vacant fraction v = target_vacancy_pct / 100
+            # Markov chain steady-state: v = drop / (pickup + drop)
+            # Fix drop = 0.05 -> pickup = 0.05 * (1 - v) / v
+            v = max(0.05, min(0.95, target_vacancy_pct / 100.0))
+            dropoff_prob = 0.05
+            pickup_prob = max(0.01, min(0.5, 0.05 * (1.0 - v) / v))
+        elif vacancy_bias == "high_demand":
             pickup_prob = 0.25
             dropoff_prob = 0.02
         elif vacancy_bias == "low_demand":
@@ -223,10 +237,13 @@ def generate_sample_data(
     scenario_mix: dict[str, float] | None = None,
     speed_bias: str = "normal",
     vacancy_bias: str = "balanced",
+    target_speed: float | None = None,
+    target_vacancy_pct: float | None = None,
+    ping_interval_secs: int = 60,
     chaos_rate: float = 0.05,
 ) -> list[Path]:
     """
-    Generate sample GPS data files for Bangkok taxis with customizable scenarios and date lists.
+    Generate sample GPS data files for Bangkok taxis with customizable scenarios and exact numeric targets.
     """
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -247,7 +264,8 @@ def generate_sample_data(
     else:
         weights = [1.0 if s == scenario else 0.0 for s in available_scenarios]
 
-    logger.info("🚕 Generating %d taxis across %d dates [Speed: %s, Demand: %s]", num_taxis, len(dates_to_generate), speed_bias, vacancy_bias)
+    logger.info("🚕 Generating %d taxis across %d dates [TargetSpeed: %s, VacancyPct: %s, Interval: %ds]",
+                num_taxis, len(dates_to_generate), str(target_speed), str(target_vacancy_pct), ping_interval_secs)
 
     for current_date in dates_to_generate:
         date_str = current_date.strftime("%Y-%m-%d")
@@ -273,6 +291,9 @@ def generate_sample_data(
                 chaos_rate=chaos_rate if taxi_scenario == "chaos" else 0.0,
                 speed_bias=speed_bias,
                 vacancy_bias=vacancy_bias,
+                target_speed=target_speed,
+                target_vacancy_pct=target_vacancy_pct,
+                ping_interval_secs=ping_interval_secs,
             )
             all_rows.extend(rows)
 

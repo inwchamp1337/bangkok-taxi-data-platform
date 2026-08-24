@@ -73,6 +73,9 @@ class CustomSimulationRequest(BaseModel):
     scenario_mix: dict[str, float] = Field(default_factory=lambda: {"normal": 1.0, "rain": 0.0, "airport": 0.0, "nightlife": 0.0, "chaos": 0.0})
     speed_bias: str = "normal"  # "normal" | "congested" | "fast"
     vacancy_bias: str = "balanced"  # "balanced" | "high_demand" | "low_demand"
+    target_speed: float | None = None
+    target_vacancy_pct: float | None = None
+    ping_interval_secs: int = 60
     overwrite: bool = True
     chaos_rate: float = 0.05
 
@@ -391,6 +394,9 @@ async def run_custom_simulation_pipeline(req: CustomSimulationRequest) -> dict[s
         scenario_mix=req.scenario_mix,
         speed_bias=req.speed_bias,
         vacancy_bias=req.vacancy_bias,
+        target_speed=req.target_speed,
+        target_vacancy_pct=req.target_vacancy_pct,
+        ping_interval_secs=req.ping_interval_secs,
         chaos_rate=req.chaos_rate,
     )
 

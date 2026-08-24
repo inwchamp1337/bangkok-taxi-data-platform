@@ -279,6 +279,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const speedBias = document.getElementById('custom-speed-bias').value;
     const vacancyBias = document.getElementById('custom-vacancy-bias').value;
 
+    const targetSpeedVal = document.getElementById('custom-target-speed').value.trim();
+    const targetVacancyVal = document.getElementById('custom-target-vacancy').value.trim();
+    const pingIntervalVal = parseInt(document.getElementById('custom-ping-interval').value, 10) || 60;
+    const chaosRateVal = parseFloat(document.getElementById('custom-chaos-rate').value) || (selectedScenario === 'chaos' ? 5.0 : 0.0);
+
     const payload = {
       mode: currentGranularityMode,
       start_date: document.getElementById('custom-start-date').value,
@@ -294,15 +299,24 @@ document.addEventListener('DOMContentLoaded', () => {
       },
       speed_bias: speedBias,
       vacancy_bias: vacancyBias,
+      target_speed: targetSpeedVal ? parseFloat(targetSpeedVal) : null,
+      target_vacancy_pct: targetVacancyVal ? parseFloat(targetVacancyVal) : null,
+      ping_interval_secs: pingIntervalVal,
       overwrite: overwriteMode,
-      chaos_rate: selectedScenario === 'chaos' ? 0.05 : 0.0,
+      chaos_rate: chaosRateVal / 100.0,
     };
 
     closeModal();
 
     const modeDesc = currentGranularityMode === 'monthly' ? `Month: ${payload.year_month}` : `${payload.num_days} days (${payload.start_date})`;
     const overwriteDesc = overwriteMode ? '🔄 OVERWRITE' : '➕ APPEND';
-    appendLog(`[custom] Launching Custom Simulator: ${modeDesc}, ${payload.num_taxis} taxis, [${selectedScenario.toUpperCase()}], ${overwriteDesc}`);
+    const numSummary = [
+      payload.target_speed ? `Speed: ${payload.target_speed}km/h` : null,
+      payload.target_vacancy_pct ? `Vacant: ${payload.target_vacancy_pct}%` : null,
+      `Step: ${payload.ping_interval_secs}s`,
+    ].filter(Boolean).join(', ');
+
+    appendLog(`[custom] Launching Custom Simulator: ${modeDesc}, ${payload.num_taxis} taxis, (${numSummary}), ${overwriteDesc}`);
 
     await executeAction(btnOpenCustomModal, 'Custom Simulation', '/api/pipeline/custom-run', payload);
   });
