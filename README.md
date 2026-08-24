@@ -96,7 +96,7 @@ This starts the ultra-lean stack (4 containers only):
 
 ---
 
-### 3. One-Click Interactive Demo
+### 3. One-Click Interactive Demo (Web Control Center)
 Open **[http://127.0.0.1:5000](http://127.0.0.1:5000)** in your browser:
 - Select from 5 traffic scenarios:
   - 🚦 **Normal Weekday**: Regular morning/evening rush hour peaks
@@ -104,16 +104,23 @@ Open **[http://127.0.0.1:5000](http://127.0.0.1:5000)** in your browser:
   - ✈️ **Airport Express Surge**: High-speed highway trips to BKK & DMK
   - 🏮 **Midnight Bangkok**: Late-night nightlife surge in Thonglor, Sukhumvit, RCA
   - ⚠️ **Chaos Engineering Mode**: Injects 5% corrupted records to test dbt validation rules
-- Or click **⚡ Run ALL Scenarios** to simulate and load all scenarios sequentially.
-- The pipeline will automatically generate data, push to MinIO, ingest into ClickHouse via native `s3()`, and run all dbt models and tests.
+- Or click **⚡ Run ALL Scenarios** or **⚙️ Advanced Custom Simulation** to configure exact fleet speed, vacancy rate, and error rate.
+- The pipeline will automatically generate probe data, push to MinIO, ingest directly into ClickHouse via native `s3()`, and run all dbt transformations & tests.
+
+#### 🖥️ Web Control Center:
+![Control Center UI](docs/images/control_panel.png)
+
+#### ⚙️ Advanced Custom Simulation Modal:
+![Custom Simulation Modal](docs/images/simulation_modal.png)
 
 ---
 
-### 4. View Analytics Dashboards
-Open **[http://127.0.0.1:3000](http://127.0.0.1:3000)** ➡️ Dashboards ➡️ Bangkok Taxi folder:
-1. **🚕 Fleet Overview**: Active taxis count, empty ratio gauge, speed trends
-2. **📍 Hotspot Analysis**: Top pickup/dropoff geohashes, peak demand hours, OD matrix
-3. **🚖 Trip Analytics**: Trip duration/distance distributions, average speeds
+### 4. View Analytics Dashboards (Grafana)
+Open **[http://127.0.0.1:3000](http://127.0.0.1:3000)** (Login: `admin` / `grafana_secret`) ➡️ Dashboards ➡️ Bangkok Taxi:
+
+| Fleet Overview | Hotspot Demand Analysis | Trip Analytics |
+|:---:|:---:|:---:|
+| ![Fleet Overview](docs/images/grafana_overview.png) | ![Hotspots](docs/images/grafana_hotspots.png) | ![Trip Analytics](docs/images/grafana_trips.png) |
 
 ---
 
@@ -126,7 +133,7 @@ bangkok-taxi-data-platform/
 │
 ├── src/                            # Python application code
 │   ├── config/settings.py          # Pydantic centralized config
-│   ├── ingestion/                  # MinIO uploader
+│   ├── ingestion/                  # MinIO S3 uploader
 │   ├── loaders/                    # ClickHouse ELT loader via s3()
 │   └── ui/                         # FastAPI Control Panel
 │
@@ -136,8 +143,9 @@ bangkok-taxi-data-platform/
 │   ├── models/marts/               # fact_trips, fact_hourly_metrics
 │   └── macros/                     # haversine, geohash
 │
+├── docs/images/                    # UI & Grafana Screenshots
 ├── infrastructure/                 # Docker configs + Grafana provisioning
-├── scripts/                        # Mock data generator + DDL
+├── scripts/                        # Mock data generator + DDL + Screenshot captures
 └── tests/                          # Integration tests
 ```
 
