@@ -225,36 +225,59 @@ async def load_to_clickhouse() -> dict[str, Any]:
     }
 
 
+DBT_LOCK = asyncio.Lock()
+
+
+class DbtRunRequest(BaseModel):
+    full_refresh: bool = False
+    run_tests: bool = True
+
+
 @app.post("/api/dbt/run")
-async def trigger_dbt_run() -> dict[str, Any]:
+async def trigger_dbt_run(req: DbtRunRequest = DbtRunRequest()) -> dict[str, Any]:
     """Execute dbt run (staging -> intermediate -> marts) inside ClickHouse."""
     dbt_dir = Path("/opt/dbt_taxi")
     if not dbt_dir.exists():
         dbt_dir = Path("dbt_taxi")
 
-    try:
-        res = subprocess.run(
-            ["dbt", "run"],
-            cwd=str(dbt_dir),
-            capture_output=True,
-            text=True,
-            timeout=120,
-        )
-        if res.returncode != 0:
-            err_msg = (res.stderr or res.stdout or "dbt run failed").strip()
-            logger.error(f"dbt run failed: {err_msg}")
-            raise HTTPException(status_code=500, detail=err_msg[-400:])
-            
-        return {
-            "status": "success",
-            "message": "dbt models built successfully",
-            "returncode": res.returncode,
-            "stdout": res.stdout,
-        }
-    except HTTPException:
-        raise
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc))
+    cmd = ["dbt", "run", "--full-refresh"] if req.full_refresh else ["dbt", "run"]
+
+    async with DBT_LOCK:
+        try:
+            res = subprocess.run(
+                cmd,
+                cwd=str(dbt_dir),
+                capture_output=True,
+                text=True,
+                timeout=180,
+            )
+            if res.returncode != 0:
+                err_msg = (res.stderr or res.stdout or "dbt run failed").strip()
+                logger.error(f"dbt run failed: {err_msg}")
+                raise HTTPException(status_code=500, detail=err_msg[-400:])
+                
+            test_res = None
+            if req.run_tests:
+                test_proc = subprocess.run(
+                    ["dbt", "test"],
+                    cwd=str(dbt_dir),
+                    capture_output=True,
+                    text=True,
+                    timeout=120,
+                )
+                test_res = "tests passed" if test_proc.returncode == 0 else "tests warned/failed"
+
+            return {
+                "status": "success",
+                "message": f"dbt models built ({'Full Refresh' if req.full_refresh else 'Incremental'})" + (f" + {test_res}" if test_res else ""),
+                "returncode": res.returncode,
+                "stdout": res.stdout,
+                "tests": test_res,
+            }
+        except HTTPException:
+            raise
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=str(exc))
 
 
 @app.post("/api/dbt/test")

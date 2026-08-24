@@ -179,8 +179,52 @@ document.addEventListener('DOMContentLoaded', () => {
     await executeAction(btnLoad, 'ClickHouse Load', '/api/load');
   });
 
-  btnDbt.addEventListener('click', async () => {
-    await executeAction(btnDbt, 'dbt Run', '/api/dbt/run');
+  // ── dbt Run Modal Logic ──
+  const dbtModal = document.getElementById('dbt-modal');
+  const dbtCloseModal = document.getElementById('dbt-modal-close-btn');
+  const dbtCancelModal = document.getElementById('dbt-modal-cancel-btn');
+  const dbtForm = document.getElementById('dbt-run-form');
+  const dbtModeCards = document.querySelectorAll('.dbt-mode-card');
+
+  function openDbtModal() {
+    dbtModal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeDbtModal() {
+    dbtModal.style.display = 'none';
+    document.body.style.overflow = '';
+  }
+
+  btnDbt.addEventListener('click', openDbtModal);
+  if (dbtCloseModal) dbtCloseModal.addEventListener('click', closeDbtModal);
+  if (dbtCancelModal) dbtCancelModal.addEventListener('click', closeDbtModal);
+
+  dbtModal.addEventListener('click', (e) => {
+    if (e.target === dbtModal) closeDbtModal();
+  });
+
+  dbtModeCards.forEach(card => {
+    card.addEventListener('click', () => {
+      dbtModeCards.forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      const radio = card.querySelector('input[type="radio"]');
+      radio.checked = true;
+    });
+  });
+
+  dbtForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const mode = document.querySelector('input[name="dbt_mode"]:checked').value;
+    const runTests = document.getElementById('dbt-run-tests-check').checked;
+    closeDbtModal();
+
+    const isFullRefresh = mode === 'full_refresh';
+    const actionDesc = isFullRefresh ? 'dbt Full Refresh' : 'dbt Incremental Run';
+    await executeAction(btnDbt, actionDesc, '/api/dbt/run', {
+      full_refresh: isFullRefresh,
+      run_tests: runTests
+    });
   });
 
   btnReset.addEventListener('click', async () => {
