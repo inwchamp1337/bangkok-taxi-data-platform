@@ -189,6 +189,124 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // ── Custom Simulation Modal Logic ──
+  const customModal = document.getElementById('custom-modal');
+  const btnOpenCustomModal = document.getElementById('btn-open-custom-modal');
+  const btnCloseModal = document.getElementById('modal-close-btn');
+  const btnCancelModal = document.getElementById('modal-cancel-btn');
+  const customForm = document.getElementById('custom-sim-form');
+
+  const tabDaily = document.getElementById('tab-daily');
+  const tabMonthly = document.getElementById('tab-monthly');
+  const viewDaily = document.getElementById('view-daily');
+  const viewMonthly = document.getElementById('view-monthly');
+  let currentGranularityMode = 'daily';
+
+  const customDaysSlider = document.getElementById('custom-days');
+  const customDaysVal = document.getElementById('custom-days-val');
+  const customFleetSlider = document.getElementById('custom-fleet');
+  const customFleetVal = document.getElementById('custom-fleet-val');
+
+  const retentionCards = document.querySelectorAll('.retention-card');
+
+  // Open / Close Modal
+  function openModal() {
+    customModal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeModal() {
+    customModal.style.display = 'none';
+    document.body.style.overflow = '';
+  }
+
+  if (btnOpenCustomModal) btnOpenCustomModal.addEventListener('click', openModal);
+  if (btnCloseModal) btnCloseModal.addEventListener('click', closeModal);
+  if (btnCancelModal) btnCancelModal.addEventListener('click', closeModal);
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && customModal.style.display === 'flex') {
+      closeModal();
+    }
+  });
+
+  customModal.addEventListener('click', (e) => {
+    if (e.target === customModal) closeModal();
+  });
+
+  // Granularity Tab Switch
+  tabDaily.addEventListener('click', () => {
+    currentGranularityMode = 'daily';
+    tabDaily.classList.add('active');
+    tabMonthly.classList.remove('active');
+    viewDaily.style.display = 'block';
+    viewMonthly.style.display = 'none';
+  });
+
+  tabMonthly.addEventListener('click', () => {
+    currentGranularityMode = 'monthly';
+    tabMonthly.classList.add('active');
+    tabDaily.classList.remove('active');
+    viewDaily.style.display = 'none';
+    viewMonthly.style.display = 'block';
+  });
+
+  // Dynamic Slider Labels
+  customDaysSlider.addEventListener('input', (e) => {
+    customDaysVal.textContent = `${e.target.value} day${e.target.value > 1 ? 's' : ''}`;
+  });
+
+  customFleetSlider.addEventListener('input', (e) => {
+    customFleetVal.textContent = `${e.target.value} taxis`;
+  });
+
+  // Retention Radio Cards
+  retentionCards.forEach(card => {
+    card.addEventListener('click', () => {
+      retentionCards.forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      const radio = card.querySelector('input[type="radio"]');
+      radio.checked = true;
+    });
+  });
+
+  // Custom Form Submit
+  customForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const selectedScenario = document.querySelector('input[name="custom_scenario"]:checked').value;
+    const overwriteMode = document.querySelector('input[name="overwrite_mode"]:checked').value === 'true';
+    const speedBias = document.getElementById('custom-speed-bias').value;
+    const vacancyBias = document.getElementById('custom-vacancy-bias').value;
+
+    const payload = {
+      mode: currentGranularityMode,
+      start_date: document.getElementById('custom-start-date').value,
+      num_days: parseInt(customDaysSlider.value, 10),
+      year_month: document.getElementById('custom-month').value,
+      num_taxis: parseInt(customFleetSlider.value, 10),
+      scenario_mix: {
+        normal: selectedScenario === 'normal' ? 1.0 : 0.0,
+        rain: selectedScenario === 'rain' ? 1.0 : 0.0,
+        airport: selectedScenario === 'airport' ? 1.0 : 0.0,
+        nightlife: selectedScenario === 'nightlife' ? 1.0 : 0.0,
+        chaos: selectedScenario === 'chaos' ? 1.0 : 0.0,
+      },
+      speed_bias: speedBias,
+      vacancy_bias: vacancyBias,
+      overwrite: overwriteMode,
+      chaos_rate: selectedScenario === 'chaos' ? 0.05 : 0.0,
+    };
+
+    closeModal();
+
+    const modeDesc = currentGranularityMode === 'monthly' ? `Month: ${payload.year_month}` : `${payload.num_days} days (${payload.start_date})`;
+    const overwriteDesc = overwriteMode ? '🔄 OVERWRITE' : '➕ APPEND';
+    appendLog(`[custom] Launching Custom Simulator: ${modeDesc}, ${payload.num_taxis} taxis, [${selectedScenario.toUpperCase()}], ${overwriteDesc}`);
+
+    await executeAction(btnOpenCustomModal, 'Custom Simulation', '/api/pipeline/custom-run', payload);
+  });
+
   // ── Init ──
   fetchStatus();
   setInterval(fetchStatus, 5000);

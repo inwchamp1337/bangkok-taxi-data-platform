@@ -64,6 +64,19 @@ class PipelineRunRequest(BaseModel):
     start_date: str = "2018-02-01"
 
 
+class CustomSimulationRequest(BaseModel):
+    mode: str = "daily"  # "daily" | "monthly"
+    start_date: str = "2018-02-01"
+    num_days: int = 3
+    year_month: str = "2018-02"
+    num_taxis: int = 50
+    scenario_mix: dict[str, float] = Field(default_factory=lambda: {"normal": 1.0, "rain": 0.0, "airport": 0.0, "nightlife": 0.0, "chaos": 0.0})
+    speed_bias: str = "normal"  # "normal" | "congested" | "fast"
+    vacancy_bias: str = "balanced"  # "balanced" | "high_demand" | "low_demand"
+    overwrite: bool = True
+    chaos_rate: float = 0.05
+
+
 @app.get("/")
 async def serve_index():
     """Serve the main web UI."""
@@ -335,6 +348,90 @@ async def run_all_scenarios_pipeline(req: PipelineRunRequest) -> dict[str, Any]:
         "scenarios_run": scenarios,
         "total_generated": total_generated,
         "total_loaded": total_loaded,
+        "dbt_run": dbt_run_res,
+        "dbt_test": dbt_test_res,
+    }
+
+
+@app.post("/api/pipeline/custom-run")
+async def run_custom_simulation_pipeline(req: CustomSimulationRequest) -> dict[str, Any]:
+    """Execute custom manual simulation: Daily/Monthly granularity, custom traffic/demand modifiers, overwrite/append."""
+    import calendar
+    settings = get_settings()
+
+    # 1. Handle Overwrite option
+    if req.overwrite:
+        logger.info("Overwrite requested — resetting database and sample files...")
+        await reset_all_data()
+
+    # 2. Compute date list based on mode
+    dates_list: list[datetime] = []
+    if req.mode == "monthly":
+        try:
+            parts = req.year_month.split("-")
+            year, month = int(parts[0]), int(parts[1])
+            _, max_days = calendar.monthrange(year, month)
+            dates_list = [datetime(year, month, d) for d in range(1, max_days + 1)]
+            logger.info("Monthly Mode: Simulating full month %04d-%02d (%d days)", year, month, len(dates_list))
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Invalid year_month format (YYYY-MM): {e}")
+    else:  # daily
+        try:
+            start = datetime.strptime(req.start_date, "%Y-%m-%d")
+            dates_list = [start + timedelta(days=i) for i in range(max(1, req.num_days))]
+            logger.info("Daily Mode: Simulating %d days starting from %s", len(dates_list), req.start_date)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Invalid start_date format (YYYY-MM-DD): {e}")
+
+    # 3. Generate Custom Mock Data
+    files = generate_sample_data(
+        output_dir=settings.sample_dir,
+        num_taxis=req.num_taxis,
+        dates_list=dates_list,
+        scenario_mix=req.scenario_mix,
+        speed_bias=req.speed_bias,
+        vacancy_bias=req.vacancy_bias,
+        chaos_rate=req.chaos_rate,
+    )
+
+    total_rows = sum(sum(1 for _ in open(f)) for f in files)
+    gen_res = {
+        "status": "success",
+        "message": f"Generated {len(files)} files with {total_rows:,} records",
+        "files_count": len(files),
+        "total_rows": total_rows,
+        "mode": req.mode,
+    }
+
+    # 4. Load into ClickHouse
+    load_res = await load_to_clickhouse()
+
+    # 5. Execute dbt
+    dbt_dir = Path("/opt/dbt_taxi") if Path("/opt/dbt_taxi").exists() else Path("dbt_taxi")
+    dbt_cmd = ["dbt", "run", "--full-refresh"] if req.overwrite else ["dbt", "run"]
+    
+    try:
+        proc = subprocess.run(dbt_cmd, cwd=str(dbt_dir), capture_output=True, text=True, timeout=180)
+        dbt_run_res = {
+            "status": "success" if proc.returncode == 0 else "error",
+            "message": "dbt models refreshed successfully" if proc.returncode == 0 else "dbt run failed",
+            "stdout": proc.stdout,
+        }
+        if proc.returncode != 0:
+            logger.error(f"Custom dbt run failed: {proc.stderr or proc.stdout}")
+    except Exception as exc:
+        dbt_run_res = {"status": "error", "message": str(exc)}
+
+    # 6. Run dbt test
+    dbt_test_res = await trigger_dbt_test()
+
+    return {
+        "status": "success" if dbt_run_res.get("status") == "success" else "partial_success",
+        "mode": req.mode,
+        "days_simulated": len(dates_list),
+        "overwrite": req.overwrite,
+        "generate": gen_res,
+        "load": load_res,
         "dbt_run": dbt_run_res,
         "dbt_test": dbt_test_res,
     }

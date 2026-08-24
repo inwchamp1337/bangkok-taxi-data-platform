@@ -79,9 +79,11 @@ def generate_taxi_day(
     start_hour: int = 6,
     end_hour: int = 22,
     chaos_rate: float = 0.05,
+    speed_bias: str = "normal",
+    vacancy_bias: str = "balanced",
 ) -> list[list]:
     """
-    Generate a full day of GPS pings for one taxi under a specific scenario.
+    Generate a full day of GPS pings for one taxi under a specific scenario and modifiers.
     """
     rows = []
     current_time = date.replace(hour=start_hour, minute=random.randint(0, 30), second=random.randint(0, 59))
@@ -93,7 +95,7 @@ def generate_taxi_day(
     if scenario == "airport":
         start_pt = random.choice([BANGKOK_HOTSPOTS["suvarnabhumi"], BANGKOK_HOTSPOTS["don_mueang"], BANGKOK_HOTSPOTS["siam"]])
     elif scenario == "nightlife":
-        start_pt = random.choice([BANGKOK_HOTSPOTS["thonglor"], BANGKOK_HOTSPOTS["rca"], BANGKOK_HOTSPOTS["sukhumvit"], BANGKOK_HOTSPOTS["silom"]])
+        start_pt = random.choice([BANGKOK_HOTSPOTS["thonglor"], BANGKOK_HOTSPOTS["rca"], BANGKOK_HOTSPOTS["silom"]])
     else:
         start_pt = random.choice(HOTSPOT_COORDS)
 
@@ -113,15 +115,15 @@ def generate_taxi_day(
         # GPS fix validity
         gps_valid = 1 if random.random() < 0.99 else 0
 
-        # Calculate speed by scenario
+        # Calculate speed by scenario & speed bias
         if not engine_on:
             speed = 0
-        elif scenario == "rain":
+        elif scenario == "rain" or speed_bias == "congested":
             # Gridlock: 5 to 25 km/h max
-            speed = 0 if random.random() < 0.35 else random.randint(5, 25)
-        elif scenario == "airport":
+            speed = 0 if random.random() < 0.4 else random.randint(4, 22)
+        elif scenario == "airport" or speed_bias == "fast":
             # Fast highway trips
-            speed = random.randint(65, 110) if random.random() < 0.55 else random.randint(15, 50)
+            speed = random.randint(65, 115) if random.random() < 0.6 else random.randint(25, 60)
         elif scenario == "nightlife":
             # Midnight cruising vs expressways
             speed = random.randint(25, 75)
@@ -174,15 +176,22 @@ def generate_taxi_day(
             lat = max(13.4, min(14.3, lat))
             lon = max(100.2, min(101.0, lon))
 
-        # State transitions (pickup / dropoff)
-        pickup_prob = 0.15 if (scenario == "rain" or is_rush_hour) else 0.08
-        dropoff_prob = 0.03 if scenario == "airport" else 0.05
+        # State transitions (pickup / dropoff) with vacancy bias
+        if vacancy_bias == "high_demand":
+            pickup_prob = 0.25
+            dropoff_prob = 0.02
+        elif vacancy_bias == "low_demand":
+            pickup_prob = 0.04
+            dropoff_prob = 0.12
+        else:
+            pickup_prob = 0.15 if (scenario == "rain" or is_rush_hour) else 0.08
+            dropoff_prob = 0.03 if scenario == "airport" else 0.05
 
         if is_vacant and random.random() < pickup_prob:
             is_vacant = False
             # Route towards next destination
             if scenario == "airport":
-                dest = random.choice([BANGKOK_HOTSPOTS["suvarnabhumi"], BANGKOK_HOTSPOTS["don_mueang"], BANGKOK_HOTSPOTS["sukhumvit"]])
+                dest = random.choice([BANGKOK_HOTSPOTS["suvarnabhumi"], BANGKOK_HOTSPOTS["don_mueang"], BANGKOK_HOTSPOTS["asok"]])
             elif scenario == "nightlife":
                 dest = random.choice([BANGKOK_HOTSPOTS["thonglor"], BANGKOK_HOTSPOTS["rca"], BANGKOK_HOTSPOTS["silom"]])
             else:
@@ -209,30 +218,47 @@ def generate_sample_data(
     num_taxis: int = 50,
     num_days: int = 3,
     start_date: datetime | None = None,
+    dates_list: list[datetime] | None = None,
     scenario: str = "normal",
+    scenario_mix: dict[str, float] | None = None,
+    speed_bias: str = "normal",
+    vacancy_bias: str = "balanced",
     chaos_rate: float = 0.05,
 ) -> list[Path]:
     """
-    Generate sample GPS data files for Bangkok taxis with a selected scenario.
+    Generate sample GPS data files for Bangkok taxis with customizable scenarios and date lists.
     """
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    if start_date is None:
-        start_date = datetime(2018, 2, 1)
+    if dates_list:
+        dates_to_generate = dates_list
+    else:
+        if start_date is None:
+            start_date = datetime(2018, 2, 1)
+        dates_to_generate = [start_date + timedelta(days=i) for i in range(num_days)]
 
     vehicles = [generate_vehicle_id() for _ in range(num_taxis)]
     generated_files = []
 
-    logger.info("🚕 Generating %d taxis across %d days [Scenario: %s]", num_taxis, num_days, scenario)
+    # Prepare scenario distribution if mix is specified
+    available_scenarios = ["normal", "rain", "airport", "nightlife", "chaos"]
+    if scenario_mix and sum(scenario_mix.values()) > 0:
+        weights = [scenario_mix.get(s, 0.0) for s in available_scenarios]
+    else:
+        weights = [1.0 if s == scenario else 0.0 for s in available_scenarios]
 
-    for day_offset in range(num_days):
-        current_date = start_date + timedelta(days=day_offset)
+    logger.info("🚕 Generating %d taxis across %d dates [Speed: %s, Demand: %s]", num_taxis, len(dates_to_generate), speed_bias, vacancy_bias)
+
+    for current_date in dates_to_generate:
         date_str = current_date.strftime("%Y-%m-%d")
         filepath = output_dir / f"probe_{scenario}_{date_str}.csv"
 
         all_rows = []
         for vehicle_id in vehicles:
-            if scenario == "nightlife":
+            # Assign scenario per taxi based on mix
+            taxi_scenario = random.choices(available_scenarios, weights=weights, k=1)[0] if weights else scenario
+            
+            if taxi_scenario == "nightlife":
                 start_hour, end_hour = 20, 4
             else:
                 start_hour = random.randint(5, 9)
@@ -241,10 +267,12 @@ def generate_sample_data(
             rows = generate_taxi_day(
                 vehicle_id=vehicle_id,
                 date=current_date,
-                scenario=scenario,
+                scenario=taxi_scenario,
                 start_hour=start_hour,
                 end_hour=end_hour,
-                chaos_rate=chaos_rate,
+                chaos_rate=chaos_rate if taxi_scenario == "chaos" else 0.0,
+                speed_bias=speed_bias,
+                vacancy_bias=vacancy_bias,
             )
             all_rows.extend(rows)
 

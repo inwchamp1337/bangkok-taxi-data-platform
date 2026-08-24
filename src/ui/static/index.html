@@ -158,6 +158,10 @@
 
           <!-- Action Buttons -->
           <div class="actions-group">
+            <button type="button" id="btn-open-custom-modal" class="btn btn-indigo">
+              <span>🎛️</span>
+              <span>Advanced Manual / Custom Simulator (Popup)</span>
+            </button>
             <button type="button" id="btn-run-all" class="btn btn-primary">
               <span>⚡</span>
               <span>Run Selected Scenario</span>
@@ -203,7 +207,7 @@
           <pre id="terminal-logs" class="terminal-content">
 [system] Bangkok Taxi Data Platform Control Center ready.
 [system] ClickHouse: connected (db: taxi)
-[system] Select a scenario and click "Run Selected Scenario" to start.</pre>
+[system] Click "Advanced Manual Simulator" to customize daily/monthly data and dashboard behavior.</pre>
         </div>
 
         <!-- Platform Portals -->
@@ -249,6 +253,141 @@
         </div>
       </section>
 
+    </div>
+  </div>
+
+  <!-- ═══════════ Custom Simulation Modal (Popup) ═══════════ -->
+  <div id="custom-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <span class="modal-icon">🎛️</span>
+          <div>
+            <h2 class="modal-title">Custom / Manual Mock Simulator</h2>
+            <p class="modal-desc">Configure granular date spans, dashboard behaviors, traffic mixes, and overwrite rules.</p>
+          </div>
+        </div>
+        <button type="button" id="modal-close-btn" class="modal-close" title="Close (Esc)">✕</button>
+      </div>
+
+      <form id="custom-sim-form" class="modal-body">
+        
+        <!-- 1. Granularity Tabs (Daily vs Monthly) -->
+        <div class="form-section">
+          <label class="section-label">1. Simulation Time Granularity (เลือกช่วงเวลา)</label>
+          <div class="segmented-control">
+            <button type="button" id="tab-daily" class="seg-btn active" data-mode="daily">📅 Daily / Range (รายวัน)</button>
+            <button type="button" id="tab-monthly" class="seg-btn" data-mode="monthly">🗓️ Full Month (รายเดือน)</button>
+          </div>
+
+          <!-- Daily View -->
+          <div id="view-daily" class="tab-view active">
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label for="custom-start-date" class="form-label">Start Date</label>
+                <input type="date" id="custom-start-date" value="2018-02-01" class="custom-input">
+              </div>
+              <div class="form-group flex-1">
+                <label for="custom-days" class="form-label">
+                  Days Count: <span id="custom-days-val" class="highlight-txt">3 days</span>
+                </label>
+                <input type="range" id="custom-days" min="1" max="14" step="1" value="3" class="custom-slider">
+              </div>
+            </div>
+          </div>
+
+          <!-- Monthly View -->
+          <div id="view-monthly" class="tab-view" style="display: none;">
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label for="custom-month" class="form-label">Select Target Month (Generates All 28-31 Days)</label>
+                <input type="month" id="custom-month" value="2018-02" class="custom-input">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Fleet Size -->
+        <div class="form-section">
+          <label class="section-label">2. Fleet Density (จำนวนรถ)</label>
+          <div class="form-group">
+            <label for="custom-fleet" class="form-label">
+              Active Taxis: <span id="custom-fleet-val" class="highlight-txt">60 taxis</span>
+            </label>
+            <input type="range" id="custom-fleet" min="10" max="250" step="10" value="60" class="custom-slider">
+          </div>
+        </div>
+
+        <!-- 3. Target Dashboard & Traffic Behavior -->
+        <div class="form-section">
+          <label class="section-label">3. Dashboard Target Behavior (เลือกรูปแบบข้อมูลใน Dashboard)</label>
+          
+          <div class="form-row">
+            <!-- Speed Bias -->
+            <div class="form-group flex-1">
+              <label for="custom-speed-bias" class="form-label">Speed / Traffic Pattern</label>
+              <select id="custom-speed-bias" class="custom-select">
+                <option value="normal">🚗 Normal Traffic (Avg 30-45 km/h)</option>
+                <option value="congested">🛑 Heavy Congestion / Rain (Avg 5-20 km/h)</option>
+                <option value="fast">⚡ Express Highway / Airport (Avg 65-100 km/h)</option>
+              </select>
+            </div>
+
+            <!-- Vacancy / Demand Bias -->
+            <div class="form-group flex-1">
+              <label for="custom-vacancy-bias" class="form-label">Passenger Demand (Empty Taxi Ratio)</label>
+              <select id="custom-vacancy-bias" class="custom-select">
+                <option value="balanced">⚖️ Balanced (~45% Empty Ratio)</option>
+                <option value="high_demand">🔥 High Demand / Surge (~15% Empty Ratio)</option>
+                <option value="low_demand">💤 Low Demand / Cruising (~75% Empty Ratio)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Scenario Mix Presets -->
+          <div class="form-group" style="margin-top: 10px;">
+            <label class="form-label">Traffic Scenario Profile</label>
+            <div class="chip-options">
+              <label class="chip-radio"><input type="radio" name="custom_scenario" value="normal" checked><span>🚦 Balanced City</span></label>
+              <label class="chip-radio"><input type="radio" name="custom_scenario" value="rain"><span>🌧️ Monsoon Gridlock</span></label>
+              <label class="chip-radio"><input type="radio" name="custom_scenario" value="airport"><span>✈️ Airport Corridor</span></label>
+              <label class="chip-radio"><input type="radio" name="custom_scenario" value="nightlife"><span>🏮 Nightlife Rush</span></label>
+              <label class="chip-radio"><input type="radio" name="custom_scenario" value="chaos"><span>⚠️ Chaos Testing (5% Errors)</span></label>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. Overwrite vs Append Strategy -->
+        <div class="form-section">
+          <label class="section-label">4. Data Retention Strategy (การจัดการข้อมูลเดิม)</label>
+          <div class="retention-picker">
+            <label class="retention-card selected">
+              <input type="radio" name="overwrite_mode" value="true" checked>
+              <div class="retention-body">
+                <div class="retention-title">🔄 Overwrite (ลบข้อมูลเดิมทิ้งแล้วเขียนทับใหม่)</div>
+                <div class="retention-desc">Truncates ClickHouse tables & full-refreshes dbt models so the dashboard cleanly matches the new simulation.</div>
+              </div>
+            </label>
+            <label class="retention-card">
+              <input type="radio" name="overwrite_mode" value="false">
+              <div class="retention-body">
+                <div class="retention-title">➕ Append (บันทึกข้อมูลเพิ่มต่อจากของเดิม)</div>
+                <div class="retention-desc">Preserves existing records in ClickHouse and adds new pings on top without wiping tables.</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="modal-footer">
+          <button type="button" id="modal-cancel-btn" class="btn btn-secondary">Cancel</button>
+          <button type="submit" id="btn-submit-custom-sim" class="btn btn-indigo">
+            <span>🚀</span>
+            <span>Execute Custom Simulation Pipeline</span>
+          </button>
+        </div>
+
+      </form>
     </div>
   </div>
 
