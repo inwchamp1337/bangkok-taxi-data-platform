@@ -8,6 +8,7 @@ ClickHouse loading, and dbt transformation runs.
 from __future__ import annotations
 
 import asyncio
+import httpx
 import logging
 import random
 import subprocess
@@ -368,7 +369,20 @@ async def get_fleet_locations() -> dict[str, Any]:
 LIVE_TASK = None
 LIVE_FLEET = []
 
-async def live_stream_worker():
+async def fetch_osrm_route(lon1, lat1, lon2, lat2):
+    url = f"http://router.project-osrm.org/route/v1/driving/{lon1},{lat1};{lon2},{lat2}?overview=full&geometries=geojson"
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(url, timeout=3.0)
+            if resp.status_code == 200:
+                data = resp.json()
+                if data.get("routes") and len(data["routes"]) > 0:
+                    return data["routes"][0]["geometry"]["coordinates"]
+    except Exception as e:
+        logger.warning(f"OSRM Error: {e}")
+    return None
+
+async def live_stream_worker(interval: int):
     global LIVE_FLEET
     client = get_clickhouse_client()
     base_lat, base_lon = 13.7563, 100.5018
@@ -380,6 +394,8 @@ async def live_stream_worker():
                 "id": f"live_taxi_{i:03d}_{random.randint(100,999)}",
                 "lat": base_lat + random.uniform(-0.08, 0.08),
                 "lon": base_lon + random.uniform(-0.08, 0.08),
+                "route": [],
+                "route_idx": 0,
                 "speed": random.randint(10, 60),
                 "vacant": random.choice([0, 1])
             })
@@ -390,17 +406,34 @@ async def live_stream_worker():
             rows_to_insert = []
             
             for v in LIVE_FLEET:
-                # Random walk towards the center or randomly
-                v["lat"] += random.uniform(-0.0008, 0.0008)
-                v["lon"] += random.uniform(-0.0008, 0.0008)
+                # If no route or finished route, fetch a new one
+                if not v.get("route") or v["route_idx"] >= len(v["route"]) - 1:
+                    dest_lat = base_lat + random.uniform(-0.1, 0.1)
+                    dest_lon = base_lon + random.uniform(-0.1, 0.1)
+                    coords = await fetch_osrm_route(v["lon"], v["lat"], dest_lon, dest_lat)
+                    if coords:
+                        v["route"] = coords
+                        v["route_idx"] = 0
+                    else:
+                        # Fallback random walk
+                        v["lat"] += random.uniform(-0.001, 0.001)
+                        v["lon"] += random.uniform(-0.001, 0.001)
                 
-                # Keep within Bangkok roughly
-                v["lat"] = max(13.5, min(14.0, v["lat"]))
-                v["lon"] = max(100.3, min(100.9, v["lon"]))
+                # Advance along route
+                if v.get("route") and v["route_idx"] < len(v["route"]) - 1:
+                    # Advance points based on speed
+                    step = max(1, v["speed"] // 15)
+                    v["route_idx"] = min(len(v["route"]) - 1, v["route_idx"] + step)
+                    next_point = v["route"][v["route_idx"]]
+                    v["lon"], v["lat"] = next_point[0], next_point[1]
+                
+                # Keep within bounds
+                v["lat"] = max(13.4, min(14.3, v["lat"]))
+                v["lon"] = max(100.2, min(101.0, v["lon"]))
 
                 if random.random() < 0.05:
                     v["vacant"] = 1 - v["vacant"]
-                    v["speed"] = random.randint(5, 75)
+                    v["speed"] = random.randint(10, 80)
                 
                 rows_to_insert.append([
                     v["id"], 1, v["lat"], v["lon"], now_str, v["speed"], v["vacant"], 1, now_str, "live_stream"
@@ -411,20 +444,23 @@ async def live_stream_worker():
                 rows_to_insert, 
                 column_names=['vehicle_id', 'gps_valid', 'lat', 'lon', 'timestamp', 'speed', 'passenger_lamp', 'engine_acc', '_loaded_at', '_source_file']
             )
-            logger.info(f"Live stream injected {len(rows_to_insert)} rows")
+            logger.info(f"Live stream injected {len(rows_to_insert)} rows (interval={interval}s)")
         except asyncio.CancelledError:
             break
         except Exception as e:
             logger.error(f"Live stream error: {e}")
             
-        await asyncio.sleep(3)
+        await asyncio.sleep(interval)
+
+class StreamStartRequest(BaseModel):
+    interval: int = 5
 
 @app.post("/api/stream/start")
-async def start_stream():
+async def start_stream(req: StreamStartRequest):
     global LIVE_TASK
     if LIVE_TASK is None or LIVE_TASK.done():
-        LIVE_TASK = asyncio.create_task(live_stream_worker())
-        return {"status": "success", "message": "Live stream started"}
+        LIVE_TASK = asyncio.create_task(live_stream_worker(req.interval))
+        return {"status": "success", "message": f"Live stream started ({req.interval}s)"}
     return {"status": "success", "message": "Live stream already running"}
 
 @app.post("/api/stream/stop")

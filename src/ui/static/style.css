@@ -666,7 +666,7 @@ body {
 
 /* Live Fleet Tracking Markers */
 .taxi-marker {
-  transition: transform 5s linear !important;
+  transition: transform var(--stream-interval, 5s) linear !important;
   margin-left: -3px !important;
   margin-top: -3px !important;
 }

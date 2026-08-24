@@ -218,9 +218,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  let fetchIntervalId = null;
+
   btnLiveStream.addEventListener('click', async () => {
-    const endpoint = isLive ? '/api/stream/stop' : '/api/stream/start';
-    await fetch(endpoint, { method: 'POST' });
+    if (isLive) {
+      await fetch('/api/stream/stop', { method: 'POST' });
+      // Revert to 5s polling when stopped
+      if (fetchIntervalId) clearInterval(fetchIntervalId);
+      fetchIntervalId = setInterval(fetchFleetLocations, 5000);
+    } else {
+      const intervalVal = parseInt(document.getElementById('live-interval').value) || 5;
+      document.documentElement.style.setProperty('--stream-interval', `${intervalVal}s`);
+      await fetch('/api/stream/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ interval: intervalVal })
+      });
+      // Poll map at the same interval
+      if (fetchIntervalId) clearInterval(fetchIntervalId);
+      fetchIntervalId = setInterval(fetchFleetLocations, intervalVal * 1000);
+    }
     await checkLiveStatus();
   });
 
@@ -302,5 +319,5 @@ document.addEventListener('DOMContentLoaded', () => {
   fetchStatus();
   fetchFleetLocations();
   setInterval(fetchStatus, 3000);
-  setInterval(fetchFleetLocations, 5000);
+  fetchIntervalId = setInterval(fetchFleetLocations, 5000);
 });

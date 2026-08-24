@@ -182,10 +182,14 @@
               <button type="button" id="btn-dbt" class="btn btn-secondary">
                 <span>🔄 Run dbt</span>
               </button>
-              <button type="button" id="btn-live-stream" class="btn" style="background-color: #ef4444; color: white;">
-                <span id="live-icon">🔴</span>
-                <span id="live-text">Start Live Stream</span>
-              </button>
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <input type="number" id="live-interval" value="5" min="1" max="10" title="Update Interval (sec)" style="width: 60px; text-align: center; background: #374151; color: white; border: 1px solid #4B5563; border-radius: 4px; padding: 4px;" />
+                <span style="font-size: 0.9em; color: #9CA3AF;">sec</span>
+                <button type="button" id="btn-live-stream" class="btn" style="background-color: #ef4444; color: white;">
+                  <span id="live-icon">🔴</span>
+                  <span id="live-text">Start Live Stream</span>
+                </button>
+              </div>
               <button type="button" id="btn-reset" class="btn btn-danger">
                 <span>🧹 Reset</span>
               </button>
