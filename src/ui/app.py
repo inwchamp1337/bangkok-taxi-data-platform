@@ -240,7 +240,7 @@ async def trigger_dbt_run(req: DbtRunRequest = DbtRunRequest()) -> dict[str, Any
     if not dbt_dir.exists():
         dbt_dir = Path("dbt_taxi")
 
-    cmd = ["dbt", "run", "--full-refresh"] if req.full_refresh else ["dbt", "run"]
+    cmd = ["dbt", "run", "--no-partial-parse", "--full-refresh"] if req.full_refresh else ["dbt", "run", "--no-partial-parse"]
 
     async with DBT_LOCK:
         try:
@@ -259,7 +259,7 @@ async def trigger_dbt_run(req: DbtRunRequest = DbtRunRequest()) -> dict[str, Any
             test_res = None
             if req.run_tests:
                 test_proc = subprocess.run(
-                    ["dbt", "test"],
+                    ["dbt", "test", "--no-partial-parse"],
                     cwd=str(dbt_dir),
                     capture_output=True,
                     text=True,
@@ -289,7 +289,7 @@ async def trigger_dbt_test() -> dict[str, Any]:
 
     try:
         res = subprocess.run(
-            ["dbt", "test"],
+            ["dbt", "test", "--no-partial-parse"],
             cwd=str(dbt_dir),
             capture_output=True,
             text=True,
@@ -437,7 +437,7 @@ async def run_custom_simulation_pipeline(req: CustomSimulationRequest) -> dict[s
 
     # 5. Execute dbt
     dbt_dir = Path("/opt/dbt_taxi") if Path("/opt/dbt_taxi").exists() else Path("dbt_taxi")
-    dbt_cmd = ["dbt", "run", "--full-refresh"] if req.overwrite else ["dbt", "run"]
+    dbt_cmd = ["dbt", "run", "--no-partial-parse", "--full-refresh"] if req.overwrite else ["dbt", "run", "--no-partial-parse"]
     
     try:
         proc = subprocess.run(dbt_cmd, cwd=str(dbt_dir), capture_output=True, text=True, timeout=180)
