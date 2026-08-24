@@ -161,6 +161,8 @@ services:
       - ./airflow/plugins:/opt/airflow/plugins:ro
       - ./src:/opt/airflow/src:ro
       - ./dbt_taxi:/opt/dbt_taxi:ro
+      - ./scripts:/opt/airflow/scripts:ro
+      - ./tests:/opt/airflow/tests:ro
       - airflow_logs:/opt/airflow/logs
       - ./data:/opt/airflow/data
     command: airflow webserver --port 8080
@@ -194,6 +196,8 @@ services:
       - ./airflow/plugins:/opt/airflow/plugins:ro
       - ./src:/opt/airflow/src:ro
       - ./dbt_taxi:/opt/dbt_taxi
+      - ./scripts:/opt/airflow/scripts:ro
+      - ./tests:/opt/airflow/tests:ro
       - airflow_logs:/opt/airflow/logs
       - ./data:/opt/airflow/data
     command: airflow scheduler

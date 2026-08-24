@@ -18,7 +18,9 @@ RUN pip install --no-cache-dir \
     pydantic-settings>=2.0.0 \
     python-dotenv>=1.0.0 \
     structlog>=24.0.0 \
-    dbt-clickhouse>=1.8.0
+    dbt-clickhouse>=1.8.0 \
+    pytest>=8.0.0 \
+    pytest-cov>=5.0.0
 
 # Set working directory
 WORKDIR /opt/airflow
