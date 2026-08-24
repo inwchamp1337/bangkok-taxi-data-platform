@@ -224,12 +224,19 @@ async def trigger_dbt_run() -> dict[str, Any]:
             text=True,
             timeout=120,
         )
+        if res.returncode != 0:
+            err_msg = (res.stderr or res.stdout or "dbt run failed").strip()
+            logger.error(f"dbt run failed: {err_msg}")
+            raise HTTPException(status_code=500, detail=err_msg[-400:])
+            
         return {
-            "status": "success" if res.returncode == 0 else "error",
+            "status": "success",
+            "message": "dbt models built successfully",
             "returncode": res.returncode,
             "stdout": res.stdout,
-            "stderr": res.stderr,
         }
+    except HTTPException:
+        raise
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 
@@ -249,12 +256,19 @@ async def trigger_dbt_test() -> dict[str, Any]:
             text=True,
             timeout=120,
         )
+        if res.returncode != 0:
+            err_msg = (res.stderr or res.stdout or "dbt test failed").strip()
+            logger.error(f"dbt test failed: {err_msg}")
+            raise HTTPException(status_code=500, detail=err_msg[-400:])
+            
         return {
-            "status": "success" if res.returncode == 0 else "error",
+            "status": "success",
+            "message": "dbt tests passed successfully",
             "returncode": res.returncode,
             "stdout": res.stdout,
-            "stderr": res.stderr,
         }
+    except HTTPException:
+        raise
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 

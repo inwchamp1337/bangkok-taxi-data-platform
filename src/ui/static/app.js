@@ -146,8 +146,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const res = await fetch(endpoint, options);
       const data = await res.json();
 
-      if (!res.ok) {
-        throw new Error(data.detail || `Action failed with status ${res.status}`);
+      if (!res.ok || (data && data.status === 'error')) {
+        const errorMsg = data.detail || data.stderr || data.stdout || data.message || `Action failed with status ${res.status}`;
+        throw new Error(errorMsg);
       }
 
       const duration = ((performance.now() - startTime) / 1000).toFixed(2);
