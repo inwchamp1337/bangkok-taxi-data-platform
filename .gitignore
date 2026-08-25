@@ -47,3 +47,7 @@ dbt_taxi/logs/
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Local scripts / installers
+install.cmd
+
